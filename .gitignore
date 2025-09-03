@@ -1,0 +1,4 @@
+lex.yy.c
+program
+sintaxis.tab.c
+sintaxis.tab.h
