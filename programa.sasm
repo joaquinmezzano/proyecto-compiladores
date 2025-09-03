@@ -1,0 +1,18 @@
+; ---------- PSEUDO-ASM GENERADO ----------
+BEGIN
+DECL a
+PUSH 5
+STORE a
+DECL b
+PUSH 6
+STORE b
+DECL sum
+LOAD a
+LOAD b
+PUSH 3
+MUL
+ADD
+STORE sum
+LOAD sum
+RET
+HALT

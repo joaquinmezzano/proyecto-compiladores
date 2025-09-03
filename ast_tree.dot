@@ -1,0 +1,38 @@
+digraph AST {
+    node [shape=box, fontname="Arial"];
+    nodo0 [label="SEQ", style=filled, fillcolor=lightgray];
+    nodo0 -> nodo1;
+    nodo1 [label="DECL a"];
+    nodo1 -> nodo2;
+    nodo2 [label="5"];
+    nodo0 -> nodo3 [style=dashed];
+    nodo3 [label="SEQ", style=filled, fillcolor=lightgray];
+    nodo3 -> nodo4;
+    nodo4 [label="DECL b"];
+    nodo3 -> nodo5 [style=dashed];
+    nodo5 [label="SEQ", style=filled, fillcolor=lightgray];
+    nodo5 -> nodo6;
+    nodo6 [label="ASSIGN b"];
+    nodo6 -> nodo7;
+    nodo7 [label="6"];
+    nodo5 -> nodo8 [style=dashed];
+    nodo8 [label="SEQ", style=filled, fillcolor=lightgray];
+    nodo8 -> nodo9;
+    nodo9 [label="DECL sum"];
+    nodo9 -> nodo10;
+    nodo10 [label="+"];
+    nodo10 -> nodo11;
+    nodo11 [label="a"];
+    nodo10 -> nodo12;
+    nodo12 [label="*"];
+    nodo12 -> nodo13;
+    nodo13 [label="b"];
+    nodo12 -> nodo14;
+    nodo14 [label="3"];
+    nodo8 -> nodo15 [style=dashed];
+    nodo15 [label="SEQ", style=filled, fillcolor=lightgray];
+    nodo15 -> nodo16;
+    nodo16 [label="RETURN", style=filled, fillcolor=lightpink];
+    nodo16 -> nodo17;
+    nodo17 [label="sum"];
+}

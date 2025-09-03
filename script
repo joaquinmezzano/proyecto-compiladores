@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Limpiar archivos anteriores
+rm -f lex.yy.c calc-sintaxis.tab.c calc-sintaxis.tab.h calc *.dot
+
+# Generar el lexer
+flex calc-lexico.l
+
+# Generar el parser
+bison -d calc-sintaxis.y
+
+# Compilar con todas las dependencias
+gcc -Wall -Wextra -g -o calc ast.c calc-sintaxis.tab.c lex.yy.c
+
+# Ejecutar con input
+./calc input.txt
