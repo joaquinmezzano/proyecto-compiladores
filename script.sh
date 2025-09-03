@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Si algún comando falla, el script termina
+# Terminar si algún comando falla
 set -e
 
 # Archivos fuente
@@ -8,7 +8,7 @@ LEXER="lexico.l"
 PARSER="sintaxis.y"
 OUTPUT="program"
 
-# Confirmación de pasar archivo
+# Confirmar que se pasó un archivo
 if [ $# -eq 0 ]; then
     echo "Uso: $0 Ejemplos/<archivo.ctds>"
     exit 1
@@ -16,15 +16,28 @@ fi
 
 FILE=$1
 
-# Ejecución
+# Verificar que el archivo existe
+if [ ! -f "$FILE" ]; then
+    echo "Error: el archivo '$FILE' no existe."
+    exit 1
+fi
+
+# Generar lexer
 echo "==> Generando lexer con Flex..."
-flex $LEXER
+flex "$LEXER"
 
+# Generar parser con Bison y reporte de conflictos
 echo "==> Generando parser con Bison..."
-bison -d $PARSER
+bison -d -v "$PARSER"  # -v genera el archivo sintaxis.output útil para debug
 
+# Compilar con GCC
 echo "==> Compilando con GCC..."
-gcc -o $OUTPUT sintaxis.tab.c lex.yy.c -lfl
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c
+else
+    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c -lfl
+fi
 
+# Ejecutar parser y capturar salida
 echo "==> Ejecutando parser con $FILE..."
-./$OUTPUT < "$FILE"
+./"$OUTPUT" < "$FILE" || echo "Parser terminó con errores. Revisá 'sintaxis.output' para detalles."

@@ -1,31 +1,44 @@
 %{
-    /* Incluir bibliotecas de C y declarar funciones */ 
-    #include <stdio.h>
-    #include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-    int yylex(void);
-    void yyerror(const char *s);
+/* Declarar variables del lexer */
+extern int yylineno;   // línea actual
+extern char *yytext;   // token actual
+
+void yyerror(const char *s);
+int yylex(void);
 %}
 
-/* Definiciones de los tokens */
+/* Unión para los valores de los tokens */
+%union {
+    int ival;
+    char *sval;
+}
+
+/* Tokens con tipo */
+%token <ival> INTEGER_LITERAL
+%token <sval> ID
 %token INT BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
 %token PARA PARC CORA CORC LLAA LLAC
 %token OP_RESTA OP_SUMA OP_MULT OP_DIV OP_RESTO OP_IGUAL
 %token OP_MAYOR OP_MENOR OP_COMP OP_AND OP_OR OP_NOT
 %token PYC COMA
-%token ID INTEGER_LITERAL
 
-/* Definiciones de precedencia */
+/* Precedencias */
 %left OP_OR
 %left OP_AND
 %left OP_MAYOR OP_MENOR OP_COMP
 %left OP_SUMA OP_RESTA
 %left OP_MULT OP_DIV OP_RESTO
 %right OP_NOT
+%right UMINUS
 
 %%
+
 program
-    :PROGRAM LLAA var_decl_list method_decl_list LLAC
+    : PROGRAM LLAA var_decl_list method_decl_list LLAC
     ;
 
 var_decl_list
@@ -34,7 +47,7 @@ var_decl_list
     ;
 
 var_decl
-    :TYPE ID OP_IGUAL expr PYC
+    : TYPE ID OP_IGUAL expr PYC
     ;
 
 method_decl_list
@@ -70,7 +83,7 @@ statement_list
 
 statement
     : ID OP_IGUAL expr PYC
-    | method_call PYC
+    | ID PARA arg_list_opt PARC PYC   /* method call */
     | IF PARA expr PARC THEN block else_opt
     | WHILE expr block
     | RETURN expr_opt PYC
@@ -88,10 +101,6 @@ expr_opt
     | expr
     ;
 
-method_call
-    : ID PARA arg_list_opt PARC
-    ;
-
 arg_list_opt
     : /* empty */
     | arg_list
@@ -103,44 +112,24 @@ arg_list
     ;
 
 expr
-    : ID
-    | method_call
-    | literal
-    | expr bin_op expr
-    | OP_RESTA expr
-    | OP_NOT expr
-    | PARA expr PARC
-    ;
-
-bin_op
-    : arith_op
-    | rel_op
-    | cond_op
-    ;
-
-arith_op
-    : OP_SUMA
-    | OP_RESTA
-    | OP_MULT
-    | OP_DIV
-    | OP_RESTO
-    ;
-
-rel_op
-    : OP_MAYOR
-    | OP_MENOR
-    | OP_COMP
-    ;
-
-cond_op
-    : OP_AND
-    | OP_OR
-    ;
-
-literal
     : INTEGER_LITERAL
     | TRUE
     | FALSE
+    | ID
+    | ID PARA arg_list_opt PARC   /* method_call */
+    | PARA expr PARC
+    | OP_RESTA expr %prec UMINUS
+    | OP_NOT expr
+    | expr OP_SUMA expr
+    | expr OP_RESTA expr
+    | expr OP_MULT expr
+    | expr OP_DIV expr
+    | expr OP_RESTO expr
+    | expr OP_MAYOR expr
+    | expr OP_MENOR expr
+    | expr OP_COMP expr
+    | expr OP_AND expr
+    | expr OP_OR expr
     ;
 
 TYPE
@@ -151,7 +140,13 @@ TYPE
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Error de sintaxis: %s\n", s);
+    fprintf(stderr, "Error de sintaxis en línea %d cerca de '%s': %s\n",
+            yylineno, yytext, s);
 }
 
-/* Main */
+int main(int argc, char **argv) {
+    if (yyparse() == 0) {
+        printf("Análisis sintáctico completado sin errores.\n");
+    }
+    return 0;
+}
