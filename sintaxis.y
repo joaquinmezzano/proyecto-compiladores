@@ -38,7 +38,17 @@ int yylex(void);
 %%
 
 program
-    : PROGRAM LLAA var_decl_list method_decl_list LLAC
+    : PROGRAM LLAA decl_list LLAC
+    ;
+
+decl_list
+    : /* empty */
+    | decl_list decl
+    ;
+
+decl
+    : var_decl
+    | method_decl
     ;
 
 var_decl_list
@@ -48,11 +58,6 @@ var_decl_list
 
 var_decl
     : TYPE ID OP_IGUAL expr PYC
-    ;
-
-method_decl_list
-    : /* empty */
-    | method_decl_list method_decl
     ;
 
 method_decl
