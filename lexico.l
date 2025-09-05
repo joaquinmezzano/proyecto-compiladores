@@ -7,16 +7,8 @@
 extern YYSTYPE yylval;
 %}
 
-%option noyywrap
-
 /* Opciones de Flex */
-
-/* Expresiones regulares */
-alpha [a-zA-Z]
-digit [0-9]
-alpha_num ({alpha}|{digit}|\-)
-id {alpha}{alpha_num}*
-integer_literal {digit}{digit}*
+%option noyywrap
 
 %%
 [ \t\r\n]+                   { /* ignorar espacios en blanco */ }
