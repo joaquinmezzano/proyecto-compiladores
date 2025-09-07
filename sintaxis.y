@@ -4,12 +4,15 @@
 #include <string.h>
 
 /* Declarar variables del lexer */
-extern int yylineno;   // línea actual
-extern char *yytext;   // token actual
+extern int yylineno;   // Línea actual
+extern char *yytext;   // Token actual
 
 void yyerror(const char *s);
 int yylex(void);
 %}
+
+/* Habilitar mensajes de error detallados */
+%define parse.error verbose
 
 /* Unión para los valores de los tokens */
 %union {
@@ -20,7 +23,7 @@ int yylex(void);
 /* Tokens con tipo */
 %token <ival> INTEGER_LITERAL
 %token <sval> ID
-%token INT BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
+%token INT INTEGER BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
 %token PARA PARC CORA CORC LLAA LLAC
 %token OP_RESTA OP_SUMA OP_MULT OP_DIV OP_RESTO OP_IGUAL
 %token OP_MAYOR OP_MENOR OP_COMP OP_AND OP_OR OP_NOT
@@ -139,6 +142,7 @@ expr
 
 TYPE
     : INT
+    | INTEGER
     | BOOL
     ;
 
@@ -152,6 +156,8 @@ void yyerror(const char *s) {
 int main(int argc, char **argv) {
     if (yyparse() == 0) {
         printf("Análisis sintáctico completado sin errores.\n");
+    } else {
+        printf("Análisis sintáctico fallido.\n");
     }
     return 0;
 }

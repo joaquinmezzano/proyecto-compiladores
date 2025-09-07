@@ -5,18 +5,28 @@
 #include "sintaxis.tab.h"
 
 extern YYSTYPE yylval;
+
+void reportar_error(const char *msg, const char *text, int lineno);
 %}
 
 /* Opciones de Flex */
 %option noyywrap
+%option yylineno
+
+/* Definiciones */
+DIGIT       [0-9]
+ALPHA       [a-zA-Z_]
+ALPHA_NUM   [a-zA-Z0-9_]
 
 %%
-[ \t\r\n]+                   { /* ignorar espacios en blanco */ }
 
-"//".*                       { /* comentario de línea */ }
-"/*"([^*]|\*+[^*/])*\*+"/"   { /* comentario multilínea */ }
+[ \t\r\n]+                   { /* Ignorar espacios en blanco, tabulaciones y saltos de línea */ }
+
+"//".*                       { /* Ignorar comentario de línea */ }
+"/*"([^*]|\*+[^*/])*\*+"/"   { /* Ignorar comentario multilínea */ }
 
 "int"                        { return INT; }
+"integer"                    { return INTEGER; }
 "bool"                       { return BOOL; }
 "program"                    { return PROGRAM; }
 "void"                       { return VOID; }
@@ -54,9 +64,23 @@ extern YYSTYPE yylval;
 ";"                          { return PYC; }
 ","                          { return COMA; }
 
-[0-9]+                       { yylval.ival = atoi(yytext); return INTEGER_LITERAL; }
+[-]?{DIGIT}+                 {
+                                long val = strtol(yytext, NULL, 10);
+                                if (val < -2147483648 || val > 2147483647) {
+                                    reportar_error("Literal entero fuera de rango", yytext, yylineno);
+                                } else {
+                                    yylval.ival = (int)val;
+                                    return INTEGER_LITERAL;
+                                }
+                             }
+
 [a-zA-Z_][a-zA-Z0-9_]*       { yylval.sval = strdup(yytext); return ID; }
 
-.                            { printf("Caracter inesperado: %s\n", yytext); }
+.                            { reportar_error("Caracter inesperado", yytext, yylineno); }
 
 %%
+
+/* Función para reportar un error */
+void reportar_error(const char *msg, const char *text, int lineno) {
+    fprintf(stderr, "Error léxico en línea %d: %s: '%s'\n", lineno, msg, text);
+}
