@@ -1,0 +1,5 @@
+program {
+    // Comprobación de fuera de rango en tipo int/integer
+    int x = 3000000000;
+    return x;
+}

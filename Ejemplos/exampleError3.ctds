@@ -1,0 +1,4 @@
+program {
+    /* Comprobación de comentarios no cerrados */
+    /* Como este comentario
+}
