@@ -16,7 +16,7 @@ int yylex(void);
 
 /* Unión para los valores de los tokens */
 %union {
-    int ival;
+    int32_t ival;
     char *sval;
 }
 
