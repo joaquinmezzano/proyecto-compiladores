@@ -29,7 +29,6 @@ ALPHA_NUM   [a-zA-Z0-9_]
 "/*"([^*]|\n|(\*+[^*/]))*"*/"   { /* ignorar comentario multilínea */ }
 "/*"([^*]|\n|(\*+[^*/]))*       { reportar_error("Comentario sin cerrar", yytext, yylineno); }
 
-"int"                        { return INT; }
 "integer"                    { return INTEGER; }
 "bool"                       { return BOOL; }
 "program"                    { return PROGRAM; }
@@ -59,6 +58,9 @@ ALPHA_NUM   [a-zA-Z0-9_]
 
 ">"                          { return OP_MAYOR; }
 "<"                          { return OP_MENOR; }
+">="                         { return OP_MAYORIG; }
+"<="                         { return OP_MENORIG; }
+"!="                         { return OP_DESIGUAL; }
 "=="                         { return OP_COMP; }
 
 "&&"                         { return OP_AND; }
