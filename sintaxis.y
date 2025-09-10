@@ -16,23 +16,23 @@ int yylex(void);
 
 /* Unión para los valores de los tokens */
 %union {
-    int ival;
+    int32_t ival;
     char *sval;
 }
 
 /* Tokens con tipo */
 %token <ival> INTEGER_LITERAL
 %token <sval> ID
-%token INT INTEGER BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
+%token INTEGER BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
 %token PARA PARC CORA CORC LLAA LLAC
 %token OP_RESTA OP_SUMA OP_MULT OP_DIV OP_RESTO OP_IGUAL
-%token OP_MAYOR OP_MENOR OP_COMP OP_AND OP_OR OP_NOT
+%token OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP OP_AND OP_OR OP_NOT
 %token PYC COMA
 
 /* Precedencias */
 %left OP_OR
 %left OP_AND
-%left OP_MAYOR OP_MENOR OP_COMP
+%left OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP
 %left OP_SUMA OP_RESTA
 %left OP_MULT OP_DIV OP_RESTO
 %right OP_NOT
@@ -135,14 +135,16 @@ expr
     | expr OP_RESTO expr
     | expr OP_MAYOR expr
     | expr OP_MENOR expr
+    | expr OP_MAYORIG expr
+    | expr OP_MENORIG expr
+    | expr OP_DESIGUAL expr
     | expr OP_COMP expr
     | expr OP_AND expr
     | expr OP_OR expr
     ;
 
 TYPE
-    : INT
-    | INTEGER
+    : INTEGER
     | BOOL
     ;
 

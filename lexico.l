@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <stdint.h>
+#include <limits.h>
 #include "sintaxis.tab.h"
 
 extern YYSTYPE yylval;
@@ -20,12 +23,12 @@ ALPHA_NUM   [a-zA-Z0-9_]
 
 %%
 
-[ \t\r\n]+                   { /* Ignorar espacios en blanco, tabulaciones y saltos de línea */ }
+[ \t\r\n]+                      { /* Ignorar espacios en blanco, tabulaciones y saltos de línea */ }
 
-"//".*                       { /* Ignorar comentario de línea */ }
-"/*"([^*]|\*+[^*/])*\*+"/"   { /* Ignorar comentario multilínea */ }
+"//".*                          { /* Ignorar comentario de línea */ }
+"/*"([^*]|\n|(\*+[^*/]))*"*/"   { /* ignorar comentario multilínea */ }
+"/*"([^*]|\n|(\*+[^*/]))*       { reportar_error("Comentario sin cerrar", yytext, yylineno); }
 
-"int"                        { return INT; }
 "integer"                    { return INTEGER; }
 "bool"                       { return BOOL; }
 "program"                    { return PROGRAM; }
@@ -55,6 +58,9 @@ ALPHA_NUM   [a-zA-Z0-9_]
 
 ">"                          { return OP_MAYOR; }
 "<"                          { return OP_MENOR; }
+">="                         { return OP_MAYORIG; }
+"<="                         { return OP_MENORIG; }
+"!="                         { return OP_DESIGUAL; }
 "=="                         { return OP_COMP; }
 
 "&&"                         { return OP_AND; }
@@ -65,16 +71,18 @@ ALPHA_NUM   [a-zA-Z0-9_]
 ","                          { return COMA; }
 
 [-]?{DIGIT}+                 {
-                                long val = strtol(yytext, NULL, 10);
-                                if (val < -2147483648 || val > 2147483647) {
-                                    reportar_error("Literal entero fuera de rango", yytext, yylineno);
+                                errno = 0;
+                                long long val = strtol(yytext, NULL, 10);
+
+                                if (errno == ERANGE || val < INT32_MIN || val > INT32_MAX) {
+                                    reportar_error("Literal entero fuera de rango (se espera int32 con signo)", yytext, yylineno);
                                 } else {
                                     yylval.ival = (int)val;
                                     return INTEGER_LITERAL;
                                 }
                              }
 
-[a-zA-Z_][a-zA-Z0-9_]*       { yylval.sval = strdup(yytext); return ID; }
+{ALPHA}{ALPHA_NUM}*          { yylval.sval = strdup(yytext); return ID; }
 
 .                            { reportar_error("Caracter inesperado", yytext, yylineno); }
 

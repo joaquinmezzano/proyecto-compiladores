@@ -1,11 +1,12 @@
 program {
+    // Comprobación de palabras reservadas juntas no validas
     void main() {
         integer y = 0;
         y = get_int();
-        if (y == 1) then {
+        iftrue (y == 1) then {
             print_int(y);
         } else {
-            print_int(inc(y));
+            return print_int(inc(y));
         }
     }
 }

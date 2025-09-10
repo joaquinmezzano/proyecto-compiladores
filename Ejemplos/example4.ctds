@@ -1,0 +1,12 @@
+program {
+    void main() {
+        integer x = 5;
+        integer res = 0;
+        while (x >= 0) {
+            if (x != 0 && x >= 3) then {
+                res = res+1;
+            }
+            x = x - 1;
+        }
+    }
+}
