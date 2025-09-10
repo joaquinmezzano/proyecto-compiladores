@@ -6,7 +6,7 @@ set -e
 # Archivos fuente
 LEXER="lexico.l"
 PARSER="sintaxis.y"
-OUTPUT="program"
+OUTPUT="c-tds"
 
 # Confirmar que se pasó un archivo
 if [ $# -eq 0 ]; then
