@@ -207,6 +207,7 @@ Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block) {
     return n;
 }
 
+// Tu función imprimir_nodo aquí (la que te di antes, sin cambios)
 void imprimir_nodo(Nodo *nodo, int indent) {
     if (!nodo) return;
 
@@ -310,6 +311,170 @@ void imprimir_nodo(Nodo *nodo, int indent) {
     }
 }
 
+// Nueva función para generar DOT para Graphviz
+static int node_counter = 0;  // Contador global para IDs únicos de nodos
+
+char* get_unique_node_id() {
+    char* id = malloc(10 * sizeof(char));  // Suficiente para "n999999"
+    sprintf(id, "n%d", node_counter++);
+    return id;
+}
+
+void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
+    if (!nodo) return;
+
+    char* my_id = get_unique_node_id();
+    char label[256] = {0};  // Buffer para label
+
+    // Construir label basado en tipo (similar a imprimir_nodo)
+    switch (nodo->tipo) {
+        case NODO_PROG:
+            strcpy(label, "ID: program");
+            break;
+        case NODO_DECL:
+            snprintf(label, sizeof(label), "VAR: %s", nodo->assign.id);
+            break;
+        case NODO_ID: {
+            if (nodo->padre && nodo->padre->tipo == NODO_METHOD) {
+                snprintf(label, sizeof(label), "PARAM: %s", nodo->nombre);
+            } else {
+                snprintf(label, sizeof(label), "ID: %s", nodo->nombre);
+            }
+            break;
+        }
+        case NODO_INTEGER:
+            snprintf(label, sizeof(label), "INTEGER: %d", nodo->val_int);
+            break;
+        case NODO_BOOL:
+            snprintf(label, sizeof(label), "BOOL: %s", nodo->val_bool ? "TRUE" : "FALSE");
+            break;
+        case NODO_ASSIGN:
+            snprintf(label, sizeof(label), "ASSIGN: %s", nodo->assign.id);
+            break;
+        case NODO_RETURN:
+            strcpy(label, "RETURN");
+            break;
+        case NODO_OP: {
+            const char* op_str;
+            switch (nodo->opBinaria.op) {
+                case TOP_SUMA: op_str = "TOP_SUMA"; break;
+                case TOP_RESTA: op_str = "TOP_RESTA"; break;
+                case TOP_MULT: op_str = "TOP_MULT"; break;
+                case TOP_DIV: op_str = "TOP_DIV"; break;
+                case TOP_RESTO: op_str = "TOP_RESTO"; break;
+                case TOP_IGUAL: op_str = "TOP_IGUAL"; break;
+                case TOP_MAYOR: op_str = "TOP_MAYOR"; break;
+                case TOP_MENOR: op_str = "TOP_MENOR"; break;
+                case TOP_MAYORIG: op_str = "TOP_MAYORIG"; break;
+                case TOP_MENORIG: op_str = "TOP_MENORIG"; break;
+                case TOP_DESIGUAL: op_str = "TOP_DESIGUAL"; break;
+                case TOP_COMP: op_str = "TOP_COMP"; break;
+                case TOP_AND: op_str = "TOP_AND"; break;
+                case TOP_OR: op_str = "TOP_OR"; break;
+                case TOP_NOT: op_str = "TOP_NOT"; break;
+                default: op_str = "UNKNOWN"; break;
+            }
+            snprintf(label, sizeof(label), "OP: %s", op_str);
+            break;
+        }
+        case NODO_METHOD:
+            snprintf(label, sizeof(label), "METHOD: %s", nodo->method.nombre);
+            break;
+        case NODO_METHOD_CALL:
+            snprintf(label, sizeof(label), "METHOD CALL: %s", nodo->method_call.nombre);
+            break;
+        case NODO_IF:
+            strcpy(label, "IF");
+            break;
+        case NODO_SENT:
+        case NODO_BLOCK:
+            strcpy(label, "BLOCK/SENT");  // Placeholder
+            break;
+        default:
+            strcpy(label, "UNKNOWN");
+            break;
+    }
+
+    // Escribir nodo en DOT
+    fprintf(dot_file, "  \"%s\" [label=\"%s\"];\n", my_id, label);
+
+    // Conectar a padre si existe
+    if (parent_id) {
+        fprintf(dot_file, "  \"%s\" -> \"%s\";\n", parent_id, my_id);
+    }
+
+    // Recursión para hijos específicos
+    switch (nodo->tipo) {
+        case NODO_DECL:
+            if (nodo->assign.expr) generar_dot_ast(nodo->assign.expr, dot_file, my_id);
+            break;
+        case NODO_ASSIGN:
+            if (nodo->assign.expr) generar_dot_ast(nodo->assign.expr, dot_file, my_id);
+            break;
+        case NODO_RETURN:
+            if (nodo->ret_expr) generar_dot_ast(nodo->ret_expr, dot_file, my_id);
+            break;
+        case NODO_OP:
+            if (nodo->opBinaria.izq) generar_dot_ast(nodo->opBinaria.izq, dot_file, my_id);
+            if (nodo->opBinaria.der) generar_dot_ast(nodo->opBinaria.der, dot_file, my_id);
+            break;
+        case NODO_METHOD:
+            if (nodo->method.params) generar_dot_ast(nodo->method.params, dot_file, my_id);
+            if (nodo->method.body) generar_dot_ast(nodo->method.body, dot_file, my_id);
+            break;
+        case NODO_METHOD_CALL:
+            if (nodo->method_call.args) generar_dot_ast(nodo->method_call.args, dot_file, my_id);
+            break;
+        case NODO_IF:
+            if (nodo->if_stmt.cond) generar_dot_ast(nodo->if_stmt.cond, dot_file, my_id);
+            if (nodo->if_stmt.then_block) generar_dot_ast(nodo->if_stmt.then_block, dot_file, my_id);
+            if (nodo->if_stmt.else_block) {
+                // Para ELSE, crea un nodo intermedio si es necesario, pero por simplicidad lo conectamos directo
+                generar_dot_ast(nodo->if_stmt.else_block, dot_file, my_id);
+            }
+            break;
+        default:
+            break;
+    }
+
+    // Recursión para hermanos (siguiente)
+    if (nodo->siguiente) {
+        generar_dot_ast(nodo->siguiente, dot_file, parent_id);  // Mismo padre para hermanos
+    }
+
+    free(my_id);  // Liberar ID temporal
+}
+
+// Función para generar el PNG completo
+void generar_png_ast(Nodo *ast) {
+    if (!ast) return;
+
+    FILE *dot_file = fopen("ast.dot", "w");
+    if (!dot_file) {
+        perror("No se pudo abrir ast.dot");
+        return;
+    }
+
+    node_counter = 0;  // Reset contador
+    fprintf(dot_file, "digraph AST {\n");
+    fprintf(dot_file, "  rankdir=TB;  // Top to bottom\n");
+    fprintf(dot_file, "  node [shape=box, style=filled, fillcolor=lightblue];\n");
+
+    generar_dot_ast(ast, dot_file, NULL);  // NULL para raíz
+
+    fprintf(dot_file, "}\n");
+    fclose(dot_file);
+
+    // Renderizar a PNG usando dot (asumiendo que Graphviz está instalado)
+    int ret = system("dot -Tpng ast.dot -o ast_tree.png");
+    if (ret != 0) {
+        fprintf(stderr, "Error: No se pudo generar PNG. Asegúrate de tener Graphviz instalado y 'dot' en PATH.\n");
+    } else {
+        printf("AST generado como 'ast_tree.png'.\n");
+    }
+}
+
+// Tu función nodo_libre aquí (la que te di antes, sin cambios)
 void nodo_libre(Nodo *nodo) {
     if (!nodo) return;
 

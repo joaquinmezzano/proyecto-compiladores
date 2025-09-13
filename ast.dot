@@ -1,0 +1,45 @@
+digraph AST {
+  rankdir=TB;  // Top to bottom
+  node [shape=box, style=filled, fillcolor=lightblue];
+  "n0" [label="ID: program"];
+  "n1" [label="METHOD: inc"];
+  "n2" [label="PARAM: x"];
+  "n1" -> "n2";
+  "n3" [label="RETURN"];
+  "n1" -> "n3";
+  "n4" [label="OP: TOP_SUMA"];
+  "n3" -> "n4";
+  "n5" [label="ID: x"];
+  "n4" -> "n5";
+  "n6" [label="INTEGER: 1"];
+  "n4" -> "n6";
+  "n7" [label="METHOD: main"];
+  "n8" [label="VAR: y"];
+  "n7" -> "n8";
+  "n9" [label="INTEGER: 0"];
+  "n8" -> "n9";
+  "n10" [label="ASSIGN: y"];
+  "n7" -> "n10";
+  "n11" [label="METHOD CALL: get_int"];
+  "n10" -> "n11";
+  "n12" [label="IF"];
+  "n7" -> "n12";
+  "n13" [label="OP: TOP_COMP"];
+  "n12" -> "n13";
+  "n14" [label="ID: y"];
+  "n13" -> "n14";
+  "n15" [label="INTEGER: 1"];
+  "n13" -> "n15";
+  "n16" [label="METHOD CALL: print_int"];
+  "n12" -> "n16";
+  "n17" [label="ID: y"];
+  "n16" -> "n17";
+  "n18" [label="RETURN"];
+  "n12" -> "n18";
+  "n19" [label="METHOD CALL: print_int"];
+  "n18" -> "n19";
+  "n20" [label="METHOD CALL: inc"];
+  "n19" -> "n20";
+  "n21" [label="ID: y"];
+  "n20" -> "n21";
+}

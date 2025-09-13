@@ -95,5 +95,6 @@ Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block);
 
 void imprimir_nodo(Nodo *nodo, int indent);
 void nodo_libre(Nodo *nodo);
+void generar_png_ast(Nodo *ast);
 
 #endif

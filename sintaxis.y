@@ -196,11 +196,11 @@ void yyerror(const char *s) {
     fprintf(stderr, "Error de sintaxis en línea %d cerca de '%s': %s\n",
             yylineno, yytext, s);
 }
-
 int main(int argc, char **argv) {
     if (yyparse() == 0) {
         printf("Análisis sintáctico completado sin errores.\n");
         imprimir_nodo(ast, 0);
+        generar_png_ast(ast);
         nodo_libre(ast);
     } else {
         printf("Análisis sintáctico fallido.\n");
