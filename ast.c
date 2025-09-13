@@ -93,12 +93,8 @@ Nodo *nodo_return(Nodo *ret_expr) {
 }
 
 Nodo *nodo_assign(char *id, Nodo *expr) {
-    if (!id) {
-        fprintf(stderr, "Error: nodo_assign recibió id NULL\n");
-        exit(EXIT_FAILURE);
-    }
-    if (!expr) {
-        fprintf(stderr, "Error: nodo_assign recibió expr NULL\n");
+    if (!id || !expr) {
+        fprintf(stderr, "Error: nodo_assign recibió id o expr NULL\n");
         exit(EXIT_FAILURE);
     }
 
@@ -120,12 +116,8 @@ Nodo *nodo_assign(char *id, Nodo *expr) {
 }
 
 Nodo *nodo_decl(char *id, Nodo *expr) {
-    if (!id) {
-        fprintf(stderr, "Error: nodo_decl recibió id NULL\n");
-        exit(EXIT_FAILURE);
-    }
-    if (!expr) {
-        fprintf(stderr, "Error: nodo_decl recibió expr NULL\n");
+    if (!id || !expr) {
+        fprintf(stderr, "Error: nodo_decl recibió id o expr NULL\n");
         exit(EXIT_FAILURE);
     }
 
@@ -146,59 +138,176 @@ Nodo *nodo_decl(char *id, Nodo *expr) {
     return n;
 }
 
+Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body) {
+    if (!nombre) {
+        fprintf(stderr, "Error: nodo_method recibió nombre NULL\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Nodo *n = malloc(sizeof(Nodo));
+    if (!n) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    
+    n->padre = NULL;
+    n->siguiente = NULL;
+    n->tipo = NODO_METHOD;
+    n->method.nombre = strdup(nombre);
+    n->method.params = params;
+    n->method.body = body;
+
+    if (params) params->padre = n;
+    if (body) body->padre = n;
+    
+    return n;
+}
+
+Nodo *nodo_method_call(char *nombre, Nodo *args) {
+    if (!nombre) {
+        fprintf(stderr, "Error: nodo_method_call recibió nombre NULL\n");
+        exit(EXIT_FAILURE);
+    }
+
+    Nodo *n = malloc(sizeof(Nodo));
+    if (!n) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    
+    n->padre = NULL;
+    n->siguiente = NULL;
+    n->tipo = NODO_METHOD_CALL;
+    n->method_call.nombre = strdup(nombre);
+    n->method_call.args = args;
+
+    if (args) args->padre = n;
+    
+    return n;
+}
+
+Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block) {
+    Nodo *n = malloc(sizeof(Nodo));
+    if (!n) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    
+    n->padre = NULL;
+    n->siguiente = NULL;
+    n->tipo = NODO_IF;
+    n->if_stmt.cond = cond;
+    n->if_stmt.then_block = then_block;
+    n->if_stmt.else_block = else_block;
+
+    if (cond) cond->padre = n;
+    if (then_block) then_block->padre = n;
+    if (else_block) else_block->padre = n;
+    
+    return n;
+}
+
 void imprimir_nodo(Nodo *nodo, int indent) {
     if (!nodo) return;
 
-    for (int i = 0; i < indent; i++) printf("    ");
+    // Indentación según el nivel
+    for (int i = 0; i < indent; i++) printf("  ");
 
-    switch(nodo->tipo) {
-        case NODO_DECL:
-            printf("%-10s%s\n", "DECL", nodo->assign.id);
-            if (nodo->assign.expr)
-                imprimir_nodo(nodo->assign.expr, indent + 1);
+    // Mostrar según tipo de nodo
+    switch (nodo->tipo) {
+        case NODO_PROG:
+            printf("ID: program\n");
             break;
-        case NODO_OP:
-            printf("%-10s\n",
-                   nodo->opBinaria.op == TOP_SUMA ? "SUMA" :
-                   nodo->opBinaria.op == TOP_RESTA ? "RESTA" :
-                   nodo->opBinaria.op == TOP_MULT ? "MULT" :
-                   nodo->opBinaria.op == TOP_DIV ? "DIV" :
-                   nodo->opBinaria.op == TOP_RESTO ? "RESTO" :
-                   nodo->opBinaria.op == TOP_IGUAL ? "IGUAL" :
-                   nodo->opBinaria.op == TOP_OR ? "OR" :
-                   nodo->opBinaria.op == TOP_AND ? "AND" :
-                   nodo->opBinaria.op == TOP_COMP ? "COMP" :
-                   nodo->opBinaria.op == TOP_DESIGUAL ? "DESIGUAL" :
-                   nodo->opBinaria.op == TOP_MAYORIG ? "MAYORIG" :
-                   nodo->opBinaria.op == TOP_MENORIG ? "MENORIG" :
-                   nodo->opBinaria.op == TOP_MAYOR ? "MAYOR" :                   
-                   nodo->opBinaria.op == TOP_MENOR ? "MENOR" : "OP_UNKNOWN");
-            imprimir_nodo(nodo->opBinaria.izq, indent + 1);
-            imprimir_nodo(nodo->opBinaria.der, indent + 1);
+        case NODO_DECL:
+            printf("VAR: %s\n", nodo->assign.id);
+            if (nodo->assign.expr) imprimir_nodo(nodo->assign.expr, indent + 1);
             break;
         case NODO_ID:
-            printf("%-10s%s\n", "ID", nodo->nombre);
+            // Detecta si es parámetro (hijo de METHOD)
+            if (nodo->padre && nodo->padre->tipo == NODO_METHOD) {
+                printf("PARAM: %s\n", nodo->nombre);
+            } else {
+                printf("ID: %s\n", nodo->nombre);
+            }
             break;
         case NODO_INTEGER:
-            printf("%-10s%d\n", "INTEGER", nodo->val_int);
+            printf("INTEGER: %d\n", nodo->val_int);
             break;
         case NODO_BOOL:
-            printf("%-10s%s\n", "BOOL", nodo->val_bool ? "true" : "false");
+            printf("BOOL: %s\n", nodo->val_bool ? "TRUE" : "FALSE");
             break;
         case NODO_ASSIGN:
-            printf("%-10s%s\n", "ASSIGN", nodo->assign.id);
+            printf("ASSIGN: %s\n", nodo->assign.id);
             imprimir_nodo(nodo->assign.expr, indent + 1);
             break;
         case NODO_RETURN:
-            printf("%-10s\n", "RETURN");
-            if (nodo->ret_expr)
-                imprimir_nodo(nodo->ret_expr, indent + 1);
+            printf("RETURN\n");
+            if (nodo->ret_expr) imprimir_nodo(nodo->ret_expr, indent + 1);
+            break;
+        case NODO_OP:
+            switch (nodo->opBinaria.op) {
+                case TOP_SUMA:     printf("OP: TOP_SUMA\n"); break;
+                case TOP_RESTA:    printf("OP: TOP_RESTA\n"); break;
+                case TOP_MULT:     printf("OP: TOP_MULT\n"); break;
+                case TOP_DIV:      printf("OP: TOP_DIV\n"); break;
+                case TOP_RESTO:    printf("OP: TOP_RESTO\n"); break;
+                case TOP_IGUAL:    printf("OP: TOP_IGUAL\n"); break;
+                case TOP_MAYOR:    printf("OP: TOP_MAYOR\n"); break;
+                case TOP_MENOR:    printf("OP: TOP_MENOR\n"); break;
+                case TOP_MAYORIG:  printf("OP: TOP_MAYORIG\n"); break;
+                case TOP_MENORIG:  printf("OP: TOP_MENORIG\n"); break;
+                case TOP_DESIGUAL: printf("OP: TOP_DESIGUAL\n"); break;
+                case TOP_COMP:     printf("OP: TOP_COMP\n"); break;
+                case TOP_AND:      printf("OP: TOP_AND\n"); break;
+                case TOP_OR:       printf("OP: TOP_OR\n"); break;
+                case TOP_NOT:      printf("OP: TOP_NOT\n"); break;
+                default:           printf("OP: UNKNOWN\n"); break;
+            }
+            if (nodo->opBinaria.izq) imprimir_nodo(nodo->opBinaria.izq, indent + 1);
+            if (nodo->opBinaria.der) imprimir_nodo(nodo->opBinaria.der, indent + 1);
+            break;
+        case NODO_METHOD:
+            printf("METHOD: %s\n", nodo->method.nombre);
+            if (nodo->method.params) {
+                imprimir_nodo(nodo->method.params, indent + 1);  // PARAM: x
+            }
+            if (nodo->method.body) {
+                imprimir_nodo(nodo->method.body, indent + 1);  // Statements dentro
+            }
+            break;
+        case NODO_METHOD_CALL:
+            printf("METHOD CALL: %s\n", nodo->method_call.nombre);
+            if (nodo->method_call.args) {
+                imprimir_nodo(nodo->method_call.args, indent + 1);  // Args como hijos
+            }
+            break;
+        case NODO_IF:
+            printf("IF\n");
+            imprimir_nodo(nodo->if_stmt.cond, indent + 1);  // Condición
+            imprimir_nodo(nodo->if_stmt.then_block, indent + 1);  // Then block
+            if (nodo->if_stmt.else_block) {
+                // Indentación correcta para ELSE
+                for (int i = 0; i < indent + 1; i++) printf("  ");
+                printf("ELSE\n");
+                imprimir_nodo(nodo->if_stmt.else_block, indent + 2);  // Contenido del else con +2 indent
+            }
+            break;
+        case NODO_SENT:
+            // Caso para eliminar warning (no usado actualmente)
+            break;
+        case NODO_BLOCK:
+            // Caso para eliminar warning (no usado actualmente)
+            // Si tuviera statements, los imprimiríamos aquí
             break;
         default:
-            printf("%-10s%d\n", "UNKNOWN", nodo->tipo);
+            printf("TIPO_DESCONOCIDO\n");
             break;
     }
 
+    // Imprimir nodo siguiente si existe (hermanos al mismo nivel)
+    if (nodo->siguiente) {
+        imprimir_nodo(nodo->siguiente, indent);
+    }
 }
 
 void nodo_libre(Nodo *nodo) {
@@ -217,11 +326,34 @@ void nodo_libre(Nodo *nodo) {
         case NODO_RETURN:
             nodo_libre(nodo->ret_expr);
             break;
+        case NODO_METHOD:
+            free(nodo->method.nombre);
+            nodo_libre(nodo->method.params);
+            nodo_libre(nodo->method.body);
+            break;
+        case NODO_METHOD_CALL:
+            free(nodo->method_call.nombre);
+            nodo_libre(nodo->method_call.args);
+            break;
+        case NODO_IF:
+            nodo_libre(nodo->if_stmt.cond);
+            nodo_libre(nodo->if_stmt.then_block);
+            nodo_libre(nodo->if_stmt.else_block);
+            break;
         case NODO_ID:
             free(nodo->nombre);
             break;
+        case NODO_INTEGER:
+        case NODO_BOOL:
+        case NODO_SENT:
+        case NODO_PROG:
+        case NODO_BLOCK:
+            // Casos vacíos para eliminar warnings
+            break;
         default:
+            // Para cualquier otro tipo futuro
             break;
     }
+
     free(nodo);
 }

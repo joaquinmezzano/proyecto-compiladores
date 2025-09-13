@@ -6,6 +6,7 @@ set -e
 # Archivos fuente
 LEXER="lexico.l"
 PARSER="sintaxis.y"
+AST="ast.c"
 OUTPUT="c-tds"
 
 # Confirmar que se pasó un archivo
@@ -33,9 +34,9 @@ bison -d -v "$PARSER"  # -v genera el archivo sintaxis.output útil para debug
 # Compilar con GCC
 echo "==> Compilando con GCC..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c
+    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c "$AST"
 else
-    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c -lfl
+    gcc -o "$OUTPUT" sintaxis.tab.c lex.yy.c "$AST" -lfl
 fi
 
 # Ejecutar parser y capturar salida

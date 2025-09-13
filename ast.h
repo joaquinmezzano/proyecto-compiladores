@@ -12,7 +12,11 @@ typedef enum {
     NODO_OP,
     NODO_INTEGER,
     NODO_BOOL,
-    NODO_ID
+    NODO_ID,
+    NODO_METHOD,
+    NODO_METHOD_CALL,
+    NODO_IF,
+    NODO_BLOCK
 } TipoNodo;
 
 typedef enum {
@@ -29,13 +33,14 @@ typedef enum {
     TOP_DESIGUAL,
     TOP_COMP,
     TOP_AND,
-    TOP_OR
+    TOP_OR,
+    TOP_NOT
 } TipoOP;
 
 typedef struct Nodo {
     TipoNodo tipo;
     struct Nodo *padre;
-    struct Nodo *siguiente;
+    struct Nodo *siguiente;  // Para listas (params, args, statements, etc.)
 
     union {
         int val_int;
@@ -54,6 +59,26 @@ typedef struct Nodo {
         } assign;
 
         struct Nodo *ret_expr;
+
+        // METHOD
+        struct {
+            char *nombre;
+            struct Nodo *params;  // Lista de NODO_ID enlazados por siguiente
+            struct Nodo *body;    // El block (statements enlazados)
+        } method;
+
+        // METHOD_CALL
+        struct {
+            char *nombre;
+            struct Nodo *args;    // Lista de expr enlazados por siguiente
+        } method_call;
+
+        // IF
+        struct {
+            struct Nodo *cond;
+            struct Nodo *then_block;
+            struct Nodo *else_block;
+        } if_stmt;
     };
 } Nodo;
 
@@ -64,6 +89,9 @@ Nodo *nodo_op(TipoOP op, Nodo *izq, Nodo *der);
 Nodo *nodo_return(Nodo *ret_expr);
 Nodo *nodo_assign(char *id, Nodo *expr);
 Nodo *nodo_decl(char *id, Nodo *expr);
+Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body);
+Nodo *nodo_method_call(char *nombre, Nodo *args);
+Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block);
 
 void imprimir_nodo(Nodo *nodo, int indent);
 void nodo_libre(Nodo *nodo);
