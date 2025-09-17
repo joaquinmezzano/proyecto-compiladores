@@ -7,7 +7,7 @@ typedef struct Symbol {
     char *name;            // identificador
     char *type;            // int, bool
     int level;             // nivel del scope
-    struct Symbol next;    // Lista enlazada dentro de la tabla
+    struct Symbol *next;    // Lista enlazada dentro de la tabla
 } Symbol;
 
 typedef struct SymbolTable {
@@ -22,7 +22,7 @@ void init_symtab();                         // Inicializa la tabla global
 void push_scope();                          // Entra en un nuevo nivel
 void pop_scope();                           // Sale del nivel y libera los simbolos del mismo
 void insert_symbol(char *name, char *type); // Inserta en la tabla actual (la del tope)
-Symbol search_symbol(char *name);           // Busca desde la tabla actual hacia atras (subiendo en la pila)
+Symbol *search_symbol(char *name);          // Busca desde la tabla actual hacia atras (subiendo en la pila)
 void print_symtab();
 
 #endif

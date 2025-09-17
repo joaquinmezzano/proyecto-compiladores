@@ -88,10 +88,10 @@ void insert_symbol(char *name, char *type) {
     current_table->symbols = new;
 }
 
-Symbol search_symbol(char *name) {
+Symbol *search_symbol(char *name) {
     for (SymbolTable *t = current_table; t != NULL; t = t->previous) {
         for (Symbol *s = t->symbols; s != NULL; s = s->next) {
-            if (strcmp(s->name, name == 0)) {
+            if (strcmp(s->name, name) == 0) {
                 return s;
             }
         }
