@@ -25,6 +25,12 @@ void init_symtab() {
 }
 
 void push_scope() {
+    // Caso en el que se llame a la función sin previamente inicializar la tabla global.
+    if (current_table == NULL) {
+        init_symtab();
+        return;
+    }
+    
     SymbolTable *new = (SymbolTable *) malloc(sizeof(SymbolTable));
     if(!new) {
         fprintf(stderr, "Error: can't assign memory for new symbol table.");
