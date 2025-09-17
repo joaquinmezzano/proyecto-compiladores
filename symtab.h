@@ -1,4 +1,4 @@
-#ifdef SYMTAB_H
+#ifndef SYMTAB_H
 #define SYMTAB_H
 
 #include <stdio.h>
@@ -16,9 +16,13 @@ typedef struct SymbolTable {
     struct SymbolTable *previous;   // apunta al nivel anterior (stack de tablas)
 } SymbolTable;
 
-void push_scope();              // Entra en un nuevo nivel
-void pop_scope();               // Sale del nivel y libera los simbolos del mismo
-void insert_symbol(name, type); // Inserta en la tabla actual (la del tope)
-Symbol search_symbol(name);     // Busca desde la tabla actual hacia atras (subiendo en la pila)
+extern SymbolTable *current_table;
+
+void init_symtab();                         // Inicializa la tabla global
+void push_scope();                          // Entra en un nuevo nivel
+void pop_scope();                           // Sale del nivel y libera los simbolos del mismo
+void insert_symbol(char *name, char *type); // Inserta en la tabla actual (la del tope)
+Symbol search_symbol(char *name);           // Busca desde la tabla actual hacia atras (subiendo en la pila)
+void print_symtab();
 
 #endif
