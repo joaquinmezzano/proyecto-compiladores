@@ -1,28 +1,35 @@
+// symtab.h
 #ifndef SYMTAB_H
 #define SYMTAB_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct Symbol {
-    char *name;            // identificador
-    char *type;            // int, bool
-    int level;             // nivel del scope
-    struct Symbol *next;    // Lista enlazada dentro de la tabla
+    char *name;
+    char *type;
+    int scope_level;  // Nivel de scope donde fue declarado
 } Symbol;
 
 typedef struct SymbolTable {
-    int level;                      // 0 = global, 1..n = funciones
-    Symbol *symbols;                // lista de simbolos en este nivel
-    struct SymbolTable *previous;   // apunta al nivel anterior (stack de tablas)
+    struct SymbolTable *parent;
+    Symbol *symbols;
+    int num_symbols;
+    struct SymbolTable **children;
+    int num_children;
 } SymbolTable;
 
 extern SymbolTable *current_table;
+extern SymbolTable *global_table;
 
-void init_symtab();                         // Inicializa la tabla global
-void push_scope();                          // Entra en un nuevo nivel
-void pop_scope();                           // Sale del nivel y libera los simbolos del mismo
-void insert_symbol(char *name, char *type); // Inserta en la tabla actual (la del tope)
-Symbol *search_symbol(char *name);          // Busca desde la tabla actual hacia atras (subiendo en la pila)
+void init_symtab();
+void push_scope();
+void pop_scope();
+Symbol* search_symbol(char *name);
+void insert_symbol(char *name, char *type);
 void print_symtab();
+void debug_print_scopes();
+void free_symtab(); // Nueva función para liberar memoria
 
 #endif

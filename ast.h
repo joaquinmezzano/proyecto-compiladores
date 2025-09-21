@@ -16,6 +16,7 @@ typedef enum {
     NODO_METHOD,
     NODO_METHOD_CALL,
     NODO_IF,
+    NODO_WHILE,  // <-- Agregar este tipo
     NODO_BLOCK
 } TipoNodo;
 
@@ -79,6 +80,12 @@ typedef struct Nodo {
             struct Nodo *then_block;
             struct Nodo *else_block;
         } if_stmt;
+
+        // WHILE  <-- Agregar esta estructura
+        struct {
+            struct Nodo *cond;
+            struct Nodo *body;
+        } while_stmt;
     };
 } Nodo;
 
@@ -92,6 +99,7 @@ Nodo *nodo_decl(char *id, Nodo *expr);
 Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body);
 Nodo *nodo_method_call(char *nombre, Nodo *args);
 Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block);
+Nodo *nodo_while(Nodo *cond, Nodo *body);  // <-- Agregar declaración
 
 void imprimir_nodo(Nodo *nodo, int indent);
 void nodo_libre(Nodo *nodo);

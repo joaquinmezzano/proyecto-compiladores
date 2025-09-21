@@ -207,7 +207,27 @@ Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block) {
     return n;
 }
 
-// Tu función imprimir_nodo aquí (la que te di antes, sin cambios)
+// Corregir la función nodo_while para usar la unión correctamente
+Nodo* nodo_while(Nodo* condicion, Nodo* bloque) {
+    Nodo* nodo = (Nodo*)malloc(sizeof(Nodo));
+    if (!nodo) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    
+    nodo->padre = NULL;
+    nodo->siguiente = NULL;
+    nodo->tipo = NODO_WHILE;
+    nodo->nombre = strdup("while");  // Para imprimir
+    nodo->while_stmt.cond = condicion;
+    nodo->while_stmt.body = bloque;
+
+    if (condicion) condicion->padre = nodo;
+    if (bloque) bloque->padre = nodo;
+    
+    return nodo;
+}
+
 void imprimir_nodo(Nodo *nodo, int indent) {
     if (!nodo) return;
 
@@ -293,6 +313,11 @@ void imprimir_nodo(Nodo *nodo, int indent) {
                 imprimir_nodo(nodo->if_stmt.else_block, indent + 2);  // Contenido del else con +2 indent
             }
             break;
+        case NODO_WHILE:  // <-- Agregar caso para WHILE
+            printf("WHILE\n");
+            imprimir_nodo(nodo->while_stmt.cond, indent + 1);  // Condición
+            imprimir_nodo(nodo->while_stmt.body, indent + 1);  // Body del while
+            break;
         case NODO_SENT:
             // Caso para eliminar warning (no usado actualmente)
             break;
@@ -311,11 +336,11 @@ void imprimir_nodo(Nodo *nodo, int indent) {
     }
 }
 
-// Nueva función para generar DOT para Graphviz
-static int node_counter = 0;  // Contador global para IDs únicos de nodos
+// Función para generar DOT para Graphviz (sin cambios, solo agregar caso WHILE)
+static int node_counter = 0;
 
 char* get_unique_node_id() {
-    char* id = malloc(10 * sizeof(char));  // Suficiente para "n999999"
+    char* id = malloc(10 * sizeof(char));
     sprintf(id, "n%d", node_counter++);
     return id;
 }
@@ -324,9 +349,9 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
     if (!nodo) return;
 
     char* my_id = get_unique_node_id();
-    char label[256] = {0};  // Buffer para label
+    char label[256] = {0};
 
-    // Construir label basado en tipo (similar a imprimir_nodo)
+    // Construir label basado en tipo
     switch (nodo->tipo) {
         case NODO_PROG:
             strcpy(label, "ID: program");
@@ -386,9 +411,12 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
         case NODO_IF:
             strcpy(label, "IF");
             break;
+        case NODO_WHILE:  // <-- Agregar caso para WHILE
+            strcpy(label, "WHILE");
+            break;
         case NODO_SENT:
         case NODO_BLOCK:
-            strcpy(label, "BLOCK/SENT");  // Placeholder
+            strcpy(label, "BLOCK/SENT");
             break;
         default:
             strcpy(label, "UNKNOWN");
@@ -429,9 +457,12 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
             if (nodo->if_stmt.cond) generar_dot_ast(nodo->if_stmt.cond, dot_file, my_id);
             if (nodo->if_stmt.then_block) generar_dot_ast(nodo->if_stmt.then_block, dot_file, my_id);
             if (nodo->if_stmt.else_block) {
-                // Para ELSE, crea un nodo intermedio si es necesario, pero por simplicidad lo conectamos directo
                 generar_dot_ast(nodo->if_stmt.else_block, dot_file, my_id);
             }
+            break;
+        case NODO_WHILE:  // <-- Agregar caso para WHILE
+            if (nodo->while_stmt.cond) generar_dot_ast(nodo->while_stmt.cond, dot_file, my_id);
+            if (nodo->while_stmt.body) generar_dot_ast(nodo->while_stmt.body, dot_file, my_id);
             break;
         default:
             break;
@@ -439,13 +470,12 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
 
     // Recursión para hermanos (siguiente)
     if (nodo->siguiente) {
-        generar_dot_ast(nodo->siguiente, dot_file, parent_id);  // Mismo padre para hermanos
+        generar_dot_ast(nodo->siguiente, dot_file, parent_id);
     }
 
-    free(my_id);  // Liberar ID temporal
+    free(my_id);
 }
 
-// Función para generar el PNG completo
 void generar_png_ast(Nodo *ast) {
     if (!ast) return;
 
@@ -455,17 +485,16 @@ void generar_png_ast(Nodo *ast) {
         return;
     }
 
-    node_counter = 0;  // Reset contador
+    node_counter = 0;
     fprintf(dot_file, "digraph AST {\n");
-    fprintf(dot_file, "  rankdir=TB;  // Top to bottom\n");
+    fprintf(dot_file, "  rankdir=TB;\n");
     fprintf(dot_file, "  node [shape=box, style=filled, fillcolor=lightblue];\n");
 
-    generar_dot_ast(ast, dot_file, NULL);  // NULL para raíz
+    generar_dot_ast(ast, dot_file, NULL);
 
     fprintf(dot_file, "}\n");
     fclose(dot_file);
 
-    // Renderizar a PNG usando dot (asumiendo que Graphviz está instalado)
     int ret = system("dot -Tpng ast.dot -o ast_tree.png");
     if (ret != 0) {
         fprintf(stderr, "Error: No se pudo generar PNG. Asegúrate de tener Graphviz instalado y 'dot' en PATH.\n");
@@ -474,7 +503,6 @@ void generar_png_ast(Nodo *ast) {
     }
 }
 
-// Tu función nodo_libre aquí (la que te di antes, sin cambios)
 void nodo_libre(Nodo *nodo) {
     if (!nodo) return;
 
@@ -505,6 +533,10 @@ void nodo_libre(Nodo *nodo) {
             nodo_libre(nodo->if_stmt.then_block);
             nodo_libre(nodo->if_stmt.else_block);
             break;
+        case NODO_WHILE:  // <-- Agregar caso para WHILE
+            nodo_libre(nodo->while_stmt.cond);
+            nodo_libre(nodo->while_stmt.body);
+            break;
         case NODO_ID:
             free(nodo->nombre);
             break;
@@ -516,7 +548,6 @@ void nodo_libre(Nodo *nodo) {
             // Casos vacíos para eliminar warnings
             break;
         default:
-            // Para cualquier otro tipo futuro
             break;
     }
 
