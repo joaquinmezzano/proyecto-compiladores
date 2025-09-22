@@ -63,7 +63,28 @@ program
 
 decl_list
     : /* empty */ { $$ = NULL; }
-    | decl_list decl { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
+    | decl_list decl
+      {
+          if ($1) {
+              Nodo *last = $1;
+              while (last->siguiente) last = last->siguiente;
+              last->siguiente = $2;
+              $$ = $1;
+          } else {
+              $$ = $2;
+          }
+      }
+    | decl_list statement
+      {
+          if ($1) {
+              Nodo *last = $1;
+              while (last->siguiente) last = last->siguiente;
+              last->siguiente = $2;
+              $$ = $1;
+          } else {
+              $$ = $2;
+          }
+      }
     ;
 
 decl
@@ -86,6 +107,16 @@ var_decl
               insert_symbol($2, "unknown");
           }
           $$ = nodo_decl($2, $4);
+      }
+    | TYPE ID PYC
+      {
+          if ($1 && $1->tipo == NODO_ID) {
+              insert_symbol($2, $1->nombre);
+              nodo_libre($1);
+          } else {
+              insert_symbol($2, "unknown");
+          }
+          $$ = nodo_decl($2, NULL); // Sin valor inicial
       }
     ;
 
@@ -313,6 +344,10 @@ int main(int argc, char **argv) {
 
     if (yyparse() == 0) {
         printf("Análisis sintáctico completado sin errores.\n");
+        printf("\n ----------------------------------");
+        printf("\n| Árbol Sintáctico Abstracto (AST) |");
+        printf("\n ----------------------------------\n");
+
         imprimir_nodo(ast, 0);
         generar_png_ast(ast);
 

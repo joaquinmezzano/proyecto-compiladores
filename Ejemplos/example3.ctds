@@ -1,4 +1,6 @@
 program {
+    bool general = true;
+    
     void main() {
         integer x = 5;
         integer res = 0;

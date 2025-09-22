@@ -95,7 +95,7 @@ void insert_symbol(char *name, char *type) {
     for (int i = 0; i < current_table->num_symbols; i++) {
         if (strcmp(current_table->symbols[i].name, name) == 0) {
             fprintf(stderr, "Warning: redeclaración de '%s' en scope actual\n", name);
-            return;
+            exit(EXIT_FAILURE);
         }
     }
     
@@ -152,7 +152,7 @@ static void print_scope(SymbolTable *scope, int level) {
         return; // No imprimir scopes completamente vacíos
     }
     
-    printf("=== SCOPE LEVEL %d ===\n", level);
+    printf("--- SCOPE LEVEL %d ---\n", level);
     
     if (scope->num_symbols == 0) {
         printf("  (scope de función - sin variables locales)\n");
@@ -172,9 +172,11 @@ static void print_scope(SymbolTable *scope, int level) {
 }
 
 void print_symtab() {
-    printf("TABLA DE SÍMBOLOS COMPLETA:\n");
+    printf("\n ------------------------");
+    printf("\n| Tabla de Simbolos (TS) |");
+    printf("\n ------------------------\n");
     print_scope(global_table, 0);
-    printf("==================\n");
+    printf("\n");
 }
 
 // Función de debug para mostrar estado actual de scopes

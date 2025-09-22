@@ -116,8 +116,8 @@ Nodo *nodo_assign(char *id, Nodo *expr) {
 }
 
 Nodo *nodo_decl(char *id, Nodo *expr) {
-    if (!id || !expr) {
-        fprintf(stderr, "Error: nodo_decl recibió id o expr NULL\n");
+    if (!id) {
+        fprintf(stderr, "Error: nodo_decl recibió id NULL\n");
         exit(EXIT_FAILURE);
     }
 
@@ -499,7 +499,7 @@ void generar_png_ast(Nodo *ast) {
     if (ret != 0) {
         fprintf(stderr, "Error: No se pudo generar PNG. Asegúrate de tener Graphviz instalado y 'dot' en PATH.\n");
     } else {
-        printf("AST generado como 'ast_tree.png'.\n");
+        printf("\nAST generado como 'ast_tree.png'.\n");
     }
 }
 

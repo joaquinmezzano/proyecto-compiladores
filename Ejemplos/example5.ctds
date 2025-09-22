@@ -1,0 +1,16 @@
+program {
+    bool general;
+    bool value = true;
+
+    bool dif_scope_def(bool p) {
+        bool general;
+        general = false;
+        return general == p;
+    }
+
+    bool main() {
+        bool res = dif_scope_def(value);
+        general = true;
+        return res != general;
+    }
+}
