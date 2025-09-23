@@ -122,60 +122,22 @@ var_decl
 
 method_decl
     /* función con tipo y cuerpo */
-    : TYPE ID PARA param_list_opt PARC LLAA 
-      { 
-          insert_symbol($2, "function"); 
-          push_scope();  // Crear scope para la función
-      } 
-      var_decl_list statement_list LLAC
+    : TYPE ID PARA param_list_opt PARC block
       {
-          pop_scope();
-          Nodo *params = $4;
-          Nodo *decls = $8;
-          Nodo *stmts = $9;
-          Nodo *body;
-          if (decls && stmts) {
-              Nodo *last_decl = decls;
-              while (last_decl->siguiente) last_decl = last_decl->siguiente;
-              last_decl->siguiente = stmts;
-              body = decls;
-          } else if (decls) {
-              body = decls;
-          } else {
-              body = stmts;
-          }
-          $$ = nodo_method($2, params, body);
+          insert_symbol($2, "function");
+          $$ = nodo_method($2, $4, $6);
       }
     /* void con cuerpo */
-    | VOID ID PARA param_list_opt PARC LLAA 
-      { 
-          insert_symbol($2, "function"); 
-          push_scope();  // Crear scope para la función
-      } 
-      var_decl_list statement_list LLAC
+    | VOID ID PARA param_list_opt PARC block
       {
-          pop_scope();
-          Nodo *params = $4;
-          Nodo *decls = $8;
-          Nodo *stmts = $9;
-          Nodo *body;
-          if (decls && stmts) {
-              Nodo *last_decl = decls;
-              while (last_decl->siguiente) last_decl = last_decl->siguiente;
-              last_decl->siguiente = stmts;
-              body = decls;
-          } else if (decls) {
-              body = decls;
-          } else {
-              body = stmts;
-          }
-          $$ = nodo_method($2, params, body);
+          insert_symbol($2, "function");
+          $$ = nodo_method($2, $4, $6);
       }
     /* función con tipo extern */
     | TYPE ID PARA param_list_opt PARC EXTERN PYC
       {
           insert_symbol($2, "function extern");
-          // Procesar parámetros en scope temporal
+          // Los parámetros se insertan en un scope temporal
           push_scope();
           Nodo *params = $4;
           pop_scope();
@@ -185,7 +147,6 @@ method_decl
     | VOID ID PARA param_list_opt PARC EXTERN PYC
       {
           insert_symbol($2, "function extern");
-          // Procesar parámetros en scope temporal
           push_scope();
           Nodo *params = $4;
           pop_scope();
