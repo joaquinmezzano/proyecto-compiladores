@@ -19,10 +19,11 @@ void init_symtab() {
     global_table->num_symbols = 0;
     global_table->children = NULL;
     global_table->num_children = 0;
+    global_table->function_name = NULL;
     current_table = global_table;
 }
 
-void push_scope() {
+void push_scope_for_function(char *function_name) {
     SymbolTable *new_scope = malloc(sizeof(SymbolTable));
     if (!new_scope) {
         perror("malloc new_scope");
@@ -33,8 +34,9 @@ void push_scope() {
     new_scope->num_symbols = 0;
     new_scope->children = NULL;
     new_scope->num_children = 0;
+    new_scope->function_name = function_name ? strdup(function_name) : NULL;  // NUEVO
     
-    // Solo agregar como hijo si no es el scope global
+    // Agregar como hijo al scope padre
     if (current_table != global_table) {
         current_table->children = realloc(current_table->children, 
                                           (current_table->num_children + 1) * sizeof(SymbolTable *));
@@ -44,7 +46,6 @@ void push_scope() {
         }
         current_table->children[current_table->num_children++] = new_scope;
     } else {
-        // Para scopes directos del global, agregarlos directamente
         global_table->children = realloc(global_table->children, 
                                          (global_table->num_children + 1) * sizeof(SymbolTable *));
         if (!global_table->children) {
@@ -55,6 +56,10 @@ void push_scope() {
     }
     
     current_table = new_scope;
+}
+
+void push_scope() {
+    push_scope_for_function(NULL);  // Scope sin función asociada
 }
 
 void pop_scope() {
@@ -80,7 +85,7 @@ Symbol* search_symbol(char *name) {
 }
 
 // Función auxiliar para calcular el nivel del scope actual (0 = global, 1 = primer nivel, etc.)
-static int get_current_scope_level() {
+int get_current_scope_level() {
     int level = 0;
     SymbolTable *scope = current_table;
     while (scope != global_table) {
@@ -127,6 +132,11 @@ static void free_scope(SymbolTable *scope) {
     }
     free(scope->symbols);
     
+    // Liberar nombre de función si existe
+    if (scope->function_name) {
+        free(scope->function_name);
+    }
+    
     // Liberar scopes hijos
     for (int i = 0; i < scope->num_children; i++) {
         free_scope(scope->children[i]);
@@ -152,7 +162,12 @@ static void print_scope(SymbolTable *scope, int level) {
         return; // No imprimir scopes completamente vacíos
     }
     
-    printf("--- SCOPE LEVEL %d ---\n", level);
+    // MODIFICADO: Mostrar nombre de función si existe
+    if (scope->function_name) {
+        printf("--- SCOPE LEVEL %d (%s) ---\n", level, scope->function_name);
+    } else {
+        printf("--- SCOPE LEVEL %d ---\n", level);
+    }
     
     if (scope->num_symbols == 0) {
         printf("  (scope de función - sin variables locales)\n");

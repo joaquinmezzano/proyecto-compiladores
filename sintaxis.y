@@ -125,32 +125,49 @@ method_decl
     : TYPE ID PARA param_list_opt PARC block
       {
           insert_symbol($2, "function");
+          // Si hay un scope de función, asignarle el nombre
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
           $$ = nodo_method($2, $4, $6);
       }
     /* void con cuerpo */
     | VOID ID PARA param_list_opt PARC block
       {
           insert_symbol($2, "function");
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
           $$ = nodo_method($2, $4, $6);
       }
     /* función con tipo extern */
     | TYPE ID PARA param_list_opt PARC EXTERN PYC
       {
           insert_symbol($2, "function extern");
-          // Los parámetros se insertan en un scope temporal
-          push_scope();
-          Nodo *params = $4;
-          pop_scope();
-          $$ = nodo_method($2, params, NULL);
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          // Para extern, hacer pop del scope de parámetros si existe
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          $$ = nodo_method($2, $4, NULL);
       }
     /* void extern */
     | VOID ID PARA param_list_opt PARC EXTERN PYC
       {
           insert_symbol($2, "function extern");
-          push_scope();
-          Nodo *params = $4;
-          pop_scope();
-          $$ = nodo_method($2, params, NULL);
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          // Para extern, hacer pop del scope de parámetros si existe
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          $$ = nodo_method($2, $4, NULL);
       }
     ;
 
@@ -162,8 +179,15 @@ param_list_opt
 param_list
     : TYPE ID
       {
+          // Crear scope para función si no existe, pero necesitamos el nombre de función
+          // Como no tenemos acceso directo al nombre aquí, usaremos push_scope() normal
+          // y luego en method_decl asignaremos el nombre
+          if (get_current_scope_level() == 0) {
+              push_scope();
+          }
+          
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre); /* inserta el parámetro en el scope actual */
+              insert_symbol($2, $1->nombre);
               nodo_libre($1);
           } else {
               insert_symbol($2, "unknown");
@@ -184,9 +208,21 @@ param_list
     ;
 
 block
-    : LLAA { push_scope(); } var_decl_list statement_list LLAC 
+    : LLAA 
       { 
-          pop_scope();
+          // Si ya estamos en scope de función (nivel 1), no crear nuevo scope
+          // Si estamos en global (nivel 0), crear scope de función
+          if (get_current_scope_level() == 0) {
+              push_scope();
+          }
+      } 
+      var_decl_list statement_list LLAC 
+      { 
+          // Solo hacer pop si creamos el scope aquí
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          
           Nodo *decls = $3;
           Nodo *stmts = $4;
           

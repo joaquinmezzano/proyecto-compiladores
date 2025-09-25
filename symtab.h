@@ -18,7 +18,10 @@ typedef struct SymbolTable {
     int num_symbols;
     struct SymbolTable **children;
     int num_children;
+    char *function_name;  // NUEVO: nombre de la función
 } SymbolTable;
+
+
 
 extern SymbolTable *current_table;
 extern SymbolTable *global_table;
@@ -30,6 +33,8 @@ Symbol* search_symbol(char *name);
 void insert_symbol(char *name, char *type);
 void print_symtab();
 void debug_print_scopes();
-void free_symtab(); // Nueva función para liberar memoria
+void free_symtab();
+void push_scope_for_function(char *function_name);
+int get_current_scope_level();
 
 #endif
