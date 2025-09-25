@@ -2,13 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ast.h"
+#include "symtab.h"
 
 /* Declarar variables del lexer */
-extern int yylineno;   // Línea actual
-extern char *yytext;   // Token actual
+extern int yylineno;
+extern char *yytext;
 
 void yyerror(const char *s);
 int yylex(void);
+
+Nodo *ast = NULL; // Variable global para guardar el AST
 %}
 
 /* Habilitar mensajes de error detallados */
@@ -18,11 +22,13 @@ int yylex(void);
 %union {
     int32_t ival;
     char *sval;
+    struct Nodo *node;
 }
 
 /* Tokens con tipo */
-%token <ival> INTEGER_LITERAL
 %token <sval> ID
+%token <ival> INTEGER_LITERAL
+%token <ival> BOOL_LITERAL
 %token INTEGER BOOL PROGRAM VOID EXTERN IF THEN ELSE WHILE RETURN TRUE FALSE
 %token PARA PARC CORA CORC LLAA LLAC
 %token OP_RESTA OP_SUMA OP_MULT OP_DIV OP_RESTO OP_IGUAL
@@ -38,128 +44,317 @@ int yylex(void);
 %right OP_NOT
 %right UMINUS
 
+/* Declarar tipos de las reglas que producen Nodo* */
+%type <node> program decl_list decl var_decl_list var_decl method_decl param_list_opt param_list
+%type <node> block statement_list statement else_opt expr_opt arg_list_opt arg_list expr method_call
+%type <node> TYPE
+
 %%
 
 program
     : PROGRAM LLAA decl_list LLAC
+      {
+          Nodo *prog = nodo_ID("program");
+          prog->siguiente = $3;  // Enlaza lista de declaraciones (métodos)
+          ast = prog;
+          $$ = prog;
+      }
     ;
 
 decl_list
-    : /* empty */
+    : /* empty */ { $$ = NULL; }
     | decl_list decl
+      {
+          if ($1) {
+              Nodo *last = $1;
+              while (last->siguiente) last = last->siguiente;
+              last->siguiente = $2;
+              $$ = $1;
+          } else {
+              $$ = $2;
+          }
+      }
+    | decl_list statement
+      {
+          if ($1) {
+              Nodo *last = $1;
+              while (last->siguiente) last = last->siguiente;
+              last->siguiente = $2;
+              $$ = $1;
+          } else {
+              $$ = $2;
+          }
+      }
     ;
 
 decl
-    : var_decl
-    | method_decl
+    : var_decl   { $$ = $1; }
+    | method_decl { $$ = $1; }
     ;
 
 var_decl_list
-    : /* empty */
-    | var_decl_list var_decl
+    : /* empty */ { $$ = NULL; }
+    | var_decl_list var_decl { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
     ;
 
 var_decl
     : TYPE ID OP_IGUAL expr PYC
+      {
+          if ($1 && $1->tipo == NODO_ID) {
+              insert_symbol($2, $1->nombre);
+              nodo_libre($1);
+          } else {
+              insert_symbol($2, "unknown");
+          }
+          $$ = nodo_decl($2, $4);
+      }
+    | TYPE ID PYC
+      {
+          if ($1 && $1->tipo == NODO_ID) {
+              insert_symbol($2, $1->nombre);
+              nodo_libre($1);
+          } else {
+              insert_symbol($2, "unknown");
+          }
+          $$ = nodo_decl($2, NULL); // Sin valor inicial
+      }
     ;
 
 method_decl
+    /* función con tipo y cuerpo */
     : TYPE ID PARA param_list_opt PARC block
+      {
+          insert_symbol($2, "function");
+          // Si hay un scope de función, asignarle el nombre
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          $$ = nodo_method($2, $4, $6);
+      }
+    /* void con cuerpo */
     | VOID ID PARA param_list_opt PARC block
+      {
+          insert_symbol($2, "function");
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          $$ = nodo_method($2, $4, $6);
+      }
+    /* función con tipo extern */
     | TYPE ID PARA param_list_opt PARC EXTERN PYC
+      {
+          insert_symbol($2, "function extern");
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          // Para extern, hacer pop del scope de parámetros si existe
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          $$ = nodo_method($2, $4, NULL);
+      }
+    /* void extern */
     | VOID ID PARA param_list_opt PARC EXTERN PYC
+      {
+          insert_symbol($2, "function extern");
+          // Si se creó un scope para parámetros, asignarle el nombre de función
+          if (current_table != global_table && !current_table->function_name) {
+              current_table->function_name = strdup($2);
+          }
+          // Para extern, hacer pop del scope de parámetros si existe
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          $$ = nodo_method($2, $4, NULL);
+      }
     ;
 
 param_list_opt
-    : /* empty */
-    | param_list
+    : /* empty */ { $$ = NULL; }
+    | param_list { $$ = $1; }
     ;
 
 param_list
     : TYPE ID
+      {
+          // Crear scope para función si no existe, pero necesitamos el nombre de función
+          // Como no tenemos acceso directo al nombre aquí, usaremos push_scope() normal
+          // y luego en method_decl asignaremos el nombre
+          if (get_current_scope_level() == 0) {
+              push_scope();
+          }
+          
+          if ($1 && $1->tipo == NODO_ID) {
+              insert_symbol($2, $1->nombre);
+              nodo_libre($1);
+          } else {
+              insert_symbol($2, "unknown");
+          }
+          $$ = nodo_ID($2);
+      }
     | param_list COMA TYPE ID
+      {
+          if ($3 && $3->tipo == NODO_ID) {
+              insert_symbol($4, $3->nombre);
+              nodo_libre($3);
+          } else {
+              insert_symbol($4, "unknown");
+          }
+          $$ = $1;
+          if ($1) $1->siguiente = nodo_ID($4);
+      }
     ;
 
 block
-    : LLAA var_decl_list statement_list LLAC
+    : LLAA 
+      { 
+          // Si ya estamos en scope de función (nivel 1), no crear nuevo scope
+          // Si estamos en global (nivel 0), crear scope de función
+          if (get_current_scope_level() == 0) {
+              push_scope();
+          }
+      } 
+      var_decl_list statement_list LLAC 
+      { 
+          // Solo hacer pop si creamos el scope aquí
+          if (get_current_scope_level() > 0) {
+              pop_scope();
+          }
+          
+          Nodo *decls = $3;
+          Nodo *stmts = $4;
+          
+          if (decls && stmts) {
+              Nodo *last_decl = decls;
+              while (last_decl->siguiente) last_decl = last_decl->siguiente;
+              last_decl->siguiente = stmts;
+              $$ = decls;
+          } else if (decls) {
+              $$ = decls;
+          } else {
+              $$ = stmts;
+          }
+      }
     ;
 
 statement_list
-    : /* empty */
-    | statement_list statement
+    : /* empty */ { $$ = NULL; }
+    | statement_list statement { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
     ;
 
 statement
     : ID OP_IGUAL expr PYC
-    | ID PARA arg_list_opt PARC PYC   /* method call */
-    | IF PARA expr PARC THEN block else_opt
-    | WHILE expr block
-    | RETURN expr_opt PYC
-    | PYC
-    | block
+      {
+          Symbol *s = search_symbol($1);
+          if (!s) {
+              fprintf(stderr, "Error semántico en línea %d: variable '%s' no declarada.\n", yylineno, $1);
+          }
+          $$ = nodo_assign($1, $3);
+          free($1);
+      }
+    | method_call PYC { $$ = $1; }
+    | IF PARA expr PARC THEN block else_opt { $$ = nodo_if($3, $6, $7); }
+    | WHILE PARA expr PARC block { $$ = nodo_while($3, $5); }
+    | RETURN expr_opt PYC { $$ = nodo_return($2); }
+    | PYC { $$ = NULL; }
+    | block { $$ = $1; }
     ;
 
 else_opt
-    : /* empty */
-    | ELSE block
+    : /* empty */ { $$ = NULL; }
+    | ELSE block { $$ = $2; }
     ;
 
 expr_opt
-    : /* empty */
-    | expr
+    : /* empty */ { $$ = NULL; }
+    | expr { $$ = $1; }
     ;
 
 arg_list_opt
-    : /* empty */
-    | arg_list
+    : /* empty */ { $$ = NULL; }
+    | arg_list { $$ = $1; }
     ;
 
 arg_list
-    : expr
-    | arg_list COMA expr
+    : expr { $$ = $1; }
+    | arg_list COMA expr { $$ = $1; if ($1) $1->siguiente = $3; }
     ;
 
 expr
-    : INTEGER_LITERAL
-    | TRUE
-    | FALSE
-    | ID
-    | ID PARA arg_list_opt PARC   /* method_call */
-    | PARA expr PARC
-    | OP_RESTA expr %prec UMINUS
-    | OP_NOT expr
-    | expr OP_SUMA expr
-    | expr OP_RESTA expr
-    | expr OP_MULT expr
-    | expr OP_DIV expr
-    | expr OP_RESTO expr
-    | expr OP_MAYOR expr
-    | expr OP_MENOR expr
-    | expr OP_MAYORIG expr
-    | expr OP_MENORIG expr
-    | expr OP_DESIGUAL expr
-    | expr OP_COMP expr
-    | expr OP_AND expr
-    | expr OP_OR expr
+    : INTEGER_LITERAL { $$ = nodo_integer($1); }
+    | TRUE { $$ = nodo_bool(1); }
+    | FALSE { $$ = nodo_bool(0); }
+    | ID { 
+          char *name = $1;
+          Symbol *s = search_symbol(name);
+          if (!s) {
+              fprintf(stderr, "Error semántico en línea %d: identificador '%s' no declarado.\n", yylineno, name);
+          }
+          $$ = nodo_ID(name);
+          free(name);
+      }
+    | method_call { $$ = $1; }
+    | PARA expr PARC { $$ = $2; }
+    | OP_RESTA expr %prec UMINUS { $$ = nodo_op(TOP_RESTA, nodo_integer(0), $2); }
+    | OP_NOT expr { $$ = nodo_op(TOP_NOT, NULL, $2); }
+    | expr OP_SUMA expr { $$ = nodo_op(TOP_SUMA, $1, $3); }
+    | expr OP_RESTA expr { $$ = nodo_op(TOP_RESTA, $1, $3); }
+    | expr OP_MULT expr { $$ = nodo_op(TOP_MULT, $1, $3); }
+    | expr OP_DIV expr { $$ = nodo_op(TOP_DIV, $1, $3); }
+    | expr OP_RESTO expr { $$ = nodo_op(TOP_RESTO, $1, $3); }
+    | expr OP_MAYOR expr { $$ = nodo_op(TOP_MAYOR, $1, $3); }
+    | expr OP_MENOR expr { $$ = nodo_op(TOP_MENOR, $1, $3); }
+    | expr OP_MAYORIG expr { $$ = nodo_op(TOP_MAYORIG, $1, $3); }
+    | expr OP_MENORIG expr { $$ = nodo_op(TOP_MENORIG, $1, $3); }
+    | expr OP_DESIGUAL expr { $$ = nodo_op(TOP_DESIGUAL, $1, $3); }
+    | expr OP_COMP expr { $$ = nodo_op(TOP_COMP, $1, $3); }
+    | expr OP_AND expr { $$ = nodo_op(TOP_AND, $1, $3); }
+    | expr OP_OR expr { $$ = nodo_op(TOP_OR, $1, $3); }
     ;
 
+method_call
+    : ID PARA arg_list_opt PARC
+      {
+          Symbol *s = search_symbol($1);
+          $$ = nodo_method_call($1, $3); // Crea nodo para llamada a método
+          free($1);
+      }
+    ;
+
+/* Regla de producción para TYPE */
 TYPE
-    : INTEGER
-    | BOOL
+    : INTEGER { $$ = nodo_ID("integer"); }
+    | BOOL    { $$ = nodo_ID("bool"); }
     ;
 
 %%
 
 void yyerror(const char *s) {
     fprintf(stderr, "Error de sintaxis en línea %d cerca de '%s': %s\n",
-            yylineno, yytext, s);
+            yylineno, yytext ? yytext : "unknown", s);
 }
 
 int main(int argc, char **argv) {
+    init_symtab();
+
     if (yyparse() == 0) {
         printf("Análisis sintáctico completado sin errores.\n");
+        printf("\n ----------------------------------");
+        printf("\n| Árbol Sintáctico Abstracto (AST) |");
+        printf("\n ----------------------------------\n");
+
+        imprimir_nodo(ast, 0);
+        generar_png_ast(ast);
+
+        print_symtab();
+
+        nodo_libre(ast);
+        free_symtab(); // Liberar memoria de la tabla de símbolos
     } else {
         printf("Análisis sintáctico fallido.\n");
     }
+
     return 0;
 }
