@@ -35,7 +35,7 @@ Nodo *ast = NULL; // Variable global para guardar el AST
 %token OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP OP_AND OP_OR OP_NOT
 %token PYC COMA
 
-/* Precedencias */
+/* Precedences */
 %left OP_OR
 %left OP_AND
 %left OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP
@@ -47,7 +47,7 @@ Nodo *ast = NULL; // Variable global para guardar el AST
 /* Declarar tipos de las reglas que producen Nodo* */
 %type <node> program decl_list decl var_decl_list var_decl method_decl param_list_opt param_list
 %type <node> block statement_list statement else_opt expr_opt arg_list_opt arg_list expr method_call
-%type <node> TYPE
+%type <node> TYPE method_body
 
 %%
 
@@ -121,37 +121,58 @@ var_decl
     ;
 
 method_decl
-    /* función con tipo y cuerpo */
-    : TYPE ID PARA param_list_opt PARC block
-      {
+    : TYPE ID PARA 
+      { 
+          // Insert the function name in the current scope (global)
           insert_symbol($2, "function");
-          $$ = nodo_method($2, $4, $6);
-      }
-    /* void con cuerpo */
-    | VOID ID PARA param_list_opt PARC block
+          push_scope();  // Push scope for parameters
+      }  
+      param_list_opt PARC method_body
       {
+          if ($7 == NULL) {
+              // Función externa
+              // Update the symbol to mark as extern
+              Symbol *sym = search_symbol($2);
+              if (sym) {
+                  free(sym->type);
+                  sym->type = strdup("function extern");
+              }
+              pop_scope();  /* Pop scope for extern function parameters */
+          } else {
+              // Función con cuerpo
+              // Scope will be handled in block rule
+          }
+          $$ = nodo_method($2, $5, $7);
+      }
+    /* void */
+    | VOID ID PARA 
+      { 
+          // Insert the function name in the current scope (global)
           insert_symbol($2, "function");
-          $$ = nodo_method($2, $4, $6);
-      }
-    /* función con tipo extern */
-    | TYPE ID PARA param_list_opt PARC EXTERN PYC
+          push_scope();  // Push scope for parameters
+      }  
+      param_list_opt PARC method_body
       {
-          insert_symbol($2, "function extern");
-          // Los parámetros se insertan en un scope temporal
-          push_scope();
-          Nodo *params = $4;
-          pop_scope();
-          $$ = nodo_method($2, params, NULL);
+          if ($7 == NULL) {
+              // Función externa
+              // Update the symbol to mark as extern
+              Symbol *sym = search_symbol($2);
+              if (sym) {
+                  free(sym->type);
+                  sym->type = strdup("function extern");
+              }
+              pop_scope();  /* Pop scope for extern function parameters */
+          } else {
+              // Función con cuerpo
+              // Scope will be handled in block rule
+          }
+          $$ = nodo_method($2, $5, $7);
       }
-    /* void extern */
-    | VOID ID PARA param_list_opt PARC EXTERN PYC
-      {
-          insert_symbol($2, "function extern");
-          push_scope();
-          Nodo *params = $4;
-          pop_scope();
-          $$ = nodo_method($2, params, NULL);
-      }
+    ;
+
+method_body
+    : block { $$ = $1; }
+    | EXTERN PYC { $$ = NULL; }
     ;
 
 param_list_opt
@@ -163,7 +184,7 @@ param_list
     : TYPE ID
       {
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre); /* inserta el parámetro en el scope actual */
+              insert_symbol($2, $1->nombre); /* inserta el parámetro en el scope actual (función) */
               nodo_libre($1);
           } else {
               insert_symbol($2, "unknown");
@@ -184,11 +205,10 @@ param_list
     ;
 
 block
-    : LLAA { push_scope(); } var_decl_list statement_list LLAC 
+    : LLAA var_decl_list statement_list LLAC 
       { 
-          pop_scope();
-          Nodo *decls = $3;
-          Nodo *stmts = $4;
+          Nodo *decls = $2;
+          Nodo *stmts = $3;
           
           if (decls && stmts) {
               Nodo *last_decl = decls;
