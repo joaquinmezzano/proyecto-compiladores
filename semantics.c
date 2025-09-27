@@ -16,7 +16,6 @@ int semantic_analysis(Nodo *ast_root) {
         return 1;
     }
     
-    printf("\n --- INICIANDO ANÁLISIS SEMÁNTICO ---\n");
     semantic_errors = 0;
     
     // Analizar todo el programa

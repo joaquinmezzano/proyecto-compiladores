@@ -43,7 +43,7 @@ bison -d -v "$PARSER"  # -v genera el archivo sintaxis.output útil para debug
 
 # Compilar con GCC
 echo "==> Compilando con GCC..."
-gcc -Wall -Wextra -std=c99 -g -I. \
+gcc -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200809L -g -I. \
     -Wno-sign-compare -Wno-unused-function \
     -o "$OUTPUT" sintaxis.tab.c lex.yy.c "$AST" "$SYMTAB" "$SEMANTICS"
 

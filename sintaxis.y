@@ -1,4 +1,6 @@
 %{
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -330,9 +332,9 @@ int main(int argc, char **argv) {
         int semantic_result = semantic_analysis(ast);
         
         if (semantic_result == 0) {
-            printf("\n✅ COMPILACIÓN EXITOSA: Análisis sintáctico y semántico completados sin errores.\n");
+            printf("✅ COMPILACIÓN EXITOSA: Análisis sintáctico y semántico completados sin errores.\n\n");
         } else {
-            printf("\n❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n");
+            printf("❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
         }
 
         nodo_libre(ast);
