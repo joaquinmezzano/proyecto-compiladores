@@ -215,3 +215,15 @@ void debug_print_scopes() {
     }
     printf("------------------------------------\n\n");
 }
+
+SymbolTable* get_function_scope(const char* name) {
+    if (!name) return NULL;
+    
+    for (int i = 0; i < global_table->num_children; i++) {
+        SymbolTable* child = global_table->children[i];
+        if (child->function_name && strcmp(child->function_name, name) == 0) {
+            return child;
+        }
+    }
+    return NULL;
+}
