@@ -5,4 +5,4 @@ sintaxis.tab.c
 sintaxis.tab.h
 sintaxis.output
 ast_tree.png
-.dot
+ast.dot

@@ -8,10 +8,4 @@ program {
         general = false;
         return general == p;
     }
-
-    bool main() {
-        bool res = dif_scope_def(value);
-        general = true;
-        return res != general;
-    }
 }

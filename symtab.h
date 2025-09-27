@@ -1,4 +1,3 @@
-// symtab.h
 #ifndef SYMTAB_H
 #define SYMTAB_H
 
@@ -21,20 +20,19 @@ typedef struct SymbolTable {
     char *function_name;  // NUEVO: nombre de la función
 } SymbolTable;
 
-
-
 extern SymbolTable *current_table;
 extern SymbolTable *global_table;
 
-void init_symtab();
-void push_scope();
-void pop_scope();
+void init_symtab(void);
+void push_scope(void);
+void push_scope_for_function(char *function_name);
+void pop_scope(void);
 Symbol* search_symbol(char *name);
 void insert_symbol(char *name, char *type);
-void print_symtab();
-void debug_print_scopes();
-void free_symtab();
-void push_scope_for_function(char *function_name);
-int get_current_scope_level();
+void free_symtab(void);
+void print_symtab(void);
+void debug_print_scopes(void);
+SymbolTable* get_function_scope(const char *name);
+int get_current_scope_level(void);
 
 #endif

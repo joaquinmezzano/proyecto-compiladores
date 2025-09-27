@@ -1,11 +1,14 @@
 program {
+    bool general = true;
+    
     void main() {
-        integer y = 0;
-        y = get_int();
-        if (y == 1) then {
-            print_int(y);
-        } else {
-            print_int(inc(y));
+        integer x = 5;
+        integer res = 0;
+        while (x >= 0) {
+            if (x != 0 && x >= 3) then {
+                res = res+1;
+            }
+            x = x - 1;
         }
     }
 }

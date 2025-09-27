@@ -1,9 +1,13 @@
 %{
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "ast.h"
 #include "symtab.h"
+#include "semantics.h"
 
 /* Declarar variables del lexer */
 extern int yylineno;
@@ -121,41 +125,32 @@ var_decl
     ;
 
 method_decl
-    : TYPE ID PARA 
-      { 
-          insert_symbol($2, "function");
-          push_scope();
-      }  
-      param_list_opt PARC method_body
+    : TYPE ID PARA
       {
-          if ($7 == NULL) {
-              // Función externa
-              Symbol *sym = search_symbol($2);
-              if (sym) {
-                  free(sym->type);
-                  sym->type = strdup("function extern");
-              }
+          if (strcmp($2, "main") == 0 && strcmp($1->nombre, "integer") != 0 && strcmp($1->nombre, "void") != 0) {
+              fprintf(stderr, "Error semántico en línea %d: main debe retornar integer o void\n", yylineno);
+              semantic_errors++;
           }
-
-          pop_scope();
-          $$ = nodo_method($2, $5, $7);
+          char func_type[100];
+          sprintf(func_type, "function:%s", $1->nombre);
+          insert_symbol($2, func_type);
+          nodo_libre($1);
+          push_scope_for_function($2); // Create scope before parameters
       }
-    | VOID ID PARA 
-      { 
-          insert_symbol($2, "function"); // igual aquí
-          push_scope();
-      }  
       param_list_opt PARC method_body
       {
-          if ($7 == NULL) {
-              Symbol *sym = search_symbol($2);
-              if (sym) {
-                  free(sym->type);
-                  sym->type = strdup("function extern");
-              }
-              pop_scope();
-          }
           $$ = nodo_method($2, $5, $7);
+          if ($7 != NULL) pop_scope();
+      }
+    | VOID ID PARA
+      {
+          insert_symbol($2, "function:void");
+          push_scope_for_function($2); // Create scope before parameters
+      }
+      param_list_opt PARC method_body
+      {
+          $$ = nodo_method($2, $5, $7);
+          if ($7 != NULL) pop_scope();
       }
     ;
 
@@ -294,7 +289,8 @@ method_call
     : ID PARA arg_list_opt PARC
       {
           Symbol *s = search_symbol($1);
-          $$ = nodo_method_call($1, $3); // Crea nodo para llamada a método
+          (void)s;
+          $$ = nodo_method_call($1, $3);
           free($1);
       }
     ;
@@ -313,6 +309,9 @@ void yyerror(const char *s) {
 }
 
 int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    
     init_symtab();
 
     if (yyparse() == 0) {
@@ -326,11 +325,25 @@ int main(int argc, char **argv) {
 
         print_symtab();
 
+        printf("\n ================================");
+        printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
+        printf("\n ================================\n");
+        
+        int semantic_result = semantic_analysis(ast);
+        
+        if (semantic_result == 0) {
+            printf("✅ COMPILACIÓN EXITOSA: Análisis sintáctico y semántico completados sin errores.\n\n");
+        } else {
+            printf("❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+        }
+
         nodo_libre(ast);
         free_symtab();
+        
+        return semantic_result;
     } else {
         printf("Análisis sintáctico fallido.\n");
+        free_symtab();
+        return 1;
     }
-
-    return 0;
 }
