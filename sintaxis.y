@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "ast.h"
 #include "symtab.h"
 #include "semantics.h"
@@ -126,7 +127,7 @@ method_decl
       {
           if (strcmp($2, "main") == 0 && strcmp($1->nombre, "integer") != 0 && strcmp($1->nombre, "void") != 0) {
               fprintf(stderr, "Error semántico en línea %d: main debe retornar integer o void\n", yylineno);
-              semantic_errors++; // Increment error count
+              semantic_errors++;
           }
           char func_type[100];
           sprintf(func_type, "function:%s", $1->nombre);

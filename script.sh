@@ -61,7 +61,7 @@ if ./"$OUTPUT" < "$FILE"; then
     [ -f "ast_tree.png" ] && echo "✓ AST generado: ast_tree.png"
     [ -f "sintaxis.output" ] && echo "✓ Reporte de parser: sintaxis.output"
 else
-    echo "=================================================="
+    echo "=============================================="
     echo "✗ Análisis terminó con errores."
     echo ""
     echo "Para debug, revisar:"
