@@ -1,12 +1,17 @@
 program {
+    bool general;
+    bool value = true;
+    bool p;
+
+    bool dif_scope_def(bool p) {
+        bool general;
+        general = false;
+        return general == p;
+    }
+
     void main() {
-        integer x = 5;
-        integer res = 0;
-        while (x >= 0) {
-            if (x != 0 && x >= 3) then {
-                res = res+1;
-            }
-            x = x - 1;
-        }
+        bool res = dif_scope_def(value);
+        general = true;
+        return ;
     }
 }

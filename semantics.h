@@ -33,6 +33,7 @@ const char* type_to_string(DataType type);
 int types_compatible(DataType type1, DataType type2);
 TypeInfo* create_type_info(DataType type);
 void free_type_info(TypeInfo *info);
+int verify_main_method();
 DataType get_return_type(Symbol *sym);
 TypeInfo* analyze_node(Nodo *node);
 TypeInfo* analyze_binary_operation(Nodo *op_node);
