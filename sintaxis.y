@@ -123,48 +123,37 @@ var_decl
 method_decl
     : TYPE ID PARA 
       { 
-          // Insert the function name in the current scope (global)
           insert_symbol($2, "function");
-          push_scope();  // Push scope for parameters
+          push_scope();
       }  
       param_list_opt PARC method_body
       {
           if ($7 == NULL) {
               // Función externa
-              // Update the symbol to mark as extern
               Symbol *sym = search_symbol($2);
               if (sym) {
                   free(sym->type);
                   sym->type = strdup("function extern");
               }
-              pop_scope();  /* Pop scope for extern function parameters */
-          } else {
-              // Función con cuerpo
-              // Scope will be handled in block rule
           }
+
+          pop_scope();
           $$ = nodo_method($2, $5, $7);
       }
-    /* void */
     | VOID ID PARA 
       { 
-          // Insert the function name in the current scope (global)
-          insert_symbol($2, "function");
-          push_scope();  // Push scope for parameters
+          insert_symbol($2, "function"); // igual aquí
+          push_scope();
       }  
       param_list_opt PARC method_body
       {
           if ($7 == NULL) {
-              // Función externa
-              // Update the symbol to mark as extern
               Symbol *sym = search_symbol($2);
               if (sym) {
                   free(sym->type);
                   sym->type = strdup("function extern");
               }
-              pop_scope();  /* Pop scope for extern function parameters */
-          } else {
-              // Función con cuerpo
-              // Scope will be handled in block rule
+              pop_scope();
           }
           $$ = nodo_method($2, $5, $7);
       }
@@ -172,7 +161,10 @@ method_decl
 
 method_body
     : block { $$ = $1; }
-    | EXTERN PYC { $$ = NULL; }
+    | EXTERN PYC { 
+        pop_scope();
+        $$ = NULL; 
+      }
     ;
 
 param_list_opt
@@ -184,7 +176,7 @@ param_list
     : TYPE ID
       {
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre); /* inserta el parámetro en el scope actual (función) */
+              insert_symbol($2, $1->nombre);
               nodo_libre($1);
           } else {
               insert_symbol($2, "unknown");
@@ -335,7 +327,7 @@ int main(int argc, char **argv) {
         print_symtab();
 
         nodo_libre(ast);
-        free_symtab(); // Liberar memoria de la tabla de símbolos
+        free_symtab();
     } else {
         printf("Análisis sintáctico fallido.\n");
     }
