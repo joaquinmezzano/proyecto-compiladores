@@ -1,6 +1,7 @@
 program {
     bool general;
     bool value = true;
+    bool p;
 
     bool dif_scope_def(bool p) {
         bool general;

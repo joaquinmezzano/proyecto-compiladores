@@ -175,7 +175,15 @@ param_list_opt
 param_list
     : TYPE ID
       {
+          // Crear scope para función si no existe, pero necesitamos el nombre de función
+          // Como no tenemos acceso directo al nombre aquí, usaremos push_scope() normal
+          // y luego en method_decl asignaremos el nombre
+          if (get_current_scope_level() == 0) {
+              push_scope();
+          }
+          
           if ($1 && $1->tipo == NODO_ID) {
+              insert_symbol($2, $1->nombre);
               insert_symbol($2, $1->nombre);
               nodo_libre($1);
           } else {
