@@ -1,8 +1,17 @@
+# Compile files
 lex.yy.c
 program
 c-tds
 sintaxis.tab.c
 sintaxis.tab.h
 sintaxis.output
-ast_tree.png
 ast.dot
+*.dSYM/
+
+# Misc files
+ast_tree.png
+
+# IDEs files
+.vscode/
+.visualstudio/
+.vs/
