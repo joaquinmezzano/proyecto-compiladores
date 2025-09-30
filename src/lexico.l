@@ -15,11 +15,15 @@ extern YYSTYPE yylval;
 void reportar_error(const char *msg, const char *text, int lineno);
 %}
 
-/* Opciones de Flex */
+/* 
+ * Opciones de Flex 
+ */
 %option noyywrap
 %option yylineno
 
-/* Definiciones */
+/* 
+ * Definiciones 
+ */
 DIGIT       [0-9]
 ALPHA       [a-zA-Z_]
 ALPHA_NUM   [a-zA-Z0-9_]
@@ -91,7 +95,9 @@ ALPHA_NUM   [a-zA-Z0-9_]
 
 %%
 
-/* Función para reportar un error */
+/* 
+ * Función para reportar un error 
+ */
 void reportar_error(const char *msg, const char *text, int lineno) {
     fprintf(stderr, "Error léxico en línea %d: %s: '%s'\n", lineno, msg, text);
 }

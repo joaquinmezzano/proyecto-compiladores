@@ -8,6 +8,9 @@
 SymbolTable *current_table = NULL;
 SymbolTable *global_table = NULL;
 
+/*
+ * Función para inicializar la tabla de simbolos con el nivel 0
+ */
 void init_symtab() {
     global_table = malloc(sizeof(SymbolTable));
     if (!global_table) {
@@ -23,6 +26,9 @@ void init_symtab() {
     current_table = global_table;
 }
 
+/*
+ * Función para pushear una scope (subir 1 nivel) para una función en especifico 
+ */
 void push_scope_for_function(char *function_name) {
     SymbolTable *new_scope = malloc(sizeof(SymbolTable));
     if (!new_scope) {
@@ -58,10 +64,16 @@ void push_scope_for_function(char *function_name) {
     current_table = new_scope;
 }
 
+/*
+ * Función para pushear un scope (subir 1 nivel) sin ninguna función especificada
+ */
 void push_scope() {
-    push_scope_for_function(NULL);  // Scope sin función asociada
+    push_scope_for_function(NULL);
 }
 
+/*
+ * Función para popear un scope (bajar 1 nivel)
+ */
 void pop_scope() {
     if (current_table == global_table) {
         fprintf(stderr, "Warning: intentando pop del scope global\n");
@@ -71,6 +83,9 @@ void pop_scope() {
     current_table = current_table->parent;
 }
 
+/*
+ * Función para buscar un simbolo en toda la SymbolTable 
+ */
 Symbol* search_symbol(char *name) {
     SymbolTable *scope = current_table;
     while (scope) {
@@ -84,7 +99,9 @@ Symbol* search_symbol(char *name) {
     return NULL;
 }
 
-// Función auxiliar para calcular el nivel del scope actual (0 = global, 1 = primer nivel, etc.)
+/*
+ * Función auxiliar para calcular el nivel del scope actual (0 = global, 1 = primer nivel, etc)
+ */
 int get_current_scope_level() {
     int level = 0;
     SymbolTable *scope = current_table;
@@ -95,8 +112,10 @@ int get_current_scope_level() {
     return level;
 }
 
+/*
+ * Función para insertar un simbolo en el scope actual
+ */
 void insert_symbol(char *name, char *type) {
-    // Verificar si ya existe en el scope actual
     for (int i = 0; i < current_table->num_symbols; i++) {
         if (strcmp(current_table->symbols[i].name, name) == 0) {
             fprintf(stderr, "Warning: redeclaración de '%s' en scope actual\n", name);
@@ -104,7 +123,6 @@ void insert_symbol(char *name, char *type) {
         }
     }
     
-    // Redimensionar array de símbolos
     current_table->symbols = realloc(current_table->symbols, 
                                    (current_table->num_symbols + 1) * sizeof(Symbol));
     if (!current_table->symbols) {
@@ -112,42 +130,41 @@ void insert_symbol(char *name, char *type) {
         exit(EXIT_FAILURE);
     }
     
-    // Agregar nuevo símbolo
     Symbol *new_sym = &current_table->symbols[current_table->num_symbols];
     new_sym->name = strdup(name);
     new_sym->type = strdup(type);
-    new_sym->scope_level = get_current_scope_level();  // Nivel correcto
+    new_sym->scope_level = get_current_scope_level();
     
     current_table->num_symbols++;
 }
 
-// Función auxiliar para liberar un scope y todos sus descendientes
+/*
+ * Función auxiliar para liberar un scope y todos sus descendientes
+ */
 static void free_scope(SymbolTable *scope) {
     if (!scope) return;
     
-    // Liberar símbolos
     for (int i = 0; i < scope->num_symbols; i++) {
         free(scope->symbols[i].name);
         free(scope->symbols[i].type);
     }
     free(scope->symbols);
     
-    // Liberar nombre de función si existe
     if (scope->function_name) {
         free(scope->function_name);
     }
     
-    // Liberar scopes hijos
     for (int i = 0; i < scope->num_children; i++) {
         free_scope(scope->children[i]);
     }
     free(scope->children);
     
-    // Liberar scope actual
     free(scope);
 }
 
-// Función para liberar toda la estructura de scopes
+/*
+ * Función para liberar toda la estructura de scopes
+ */
 void free_symtab() {
     if (global_table) {
         free_scope(global_table);
@@ -156,13 +173,14 @@ void free_symtab() {
     }
 }
 
+/*
+ * Función para imprimir el scope
+ */
 static void print_scope(SymbolTable *scope, int level) {
-    // Solo imprimir scopes que tengan símbolos o sean scopes de función
     if (scope->num_symbols == 0 && scope->num_children == 0) {
-        return; // No imprimir scopes completamente vacíos
+        return;
     }
     
-    // MODIFICADO: Mostrar nombre de función si existe
     if (scope->function_name) {
         printf("--- SCOPE LEVEL %d (%s) ---\n", level, scope->function_name);
     } else {
@@ -180,12 +198,14 @@ static void print_scope(SymbolTable *scope, int level) {
         }
     }
     
-    // Recursivamente imprimir scopes hijos solo si tienen contenido
     for (int i = 0; i < scope->num_children; i++) {
         print_scope(scope->children[i], level + 1);
     }
 }
 
+/*
+ * Función para imprimir la tabla de simbolos
+ */
 void print_symtab() {
     printf("\n ------------------------");
     printf("\n| Tabla de Simbolos (TS) |");
@@ -194,7 +214,9 @@ void print_symtab() {
     printf("\n");
 }
 
-// Función de debug para mostrar estado actual de scopes
+/*
+ * Función para mostrar el estado actual de los scopes 
+ */
 void debug_print_scopes() {
     printf("\n--- DEBUG: Estado actual de scopes ---\n");
     SymbolTable *scope = current_table;
@@ -216,6 +238,9 @@ void debug_print_scopes() {
     printf("------------------------------------\n\n");
 }
 
+/*
+ * Función para obtener el scope la función especificada como parametro
+ */
 SymbolTable* get_function_scope(const char* name) {
     if (!name) return NULL;
     

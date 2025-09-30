@@ -2,14 +2,20 @@
 
 #include "semantics.h"
 
-// Variables globales para análisis semántico
+/*
+ * Variables globales para análisis semántico
+ */
 int semantic_errors = 0;
 DataType current_function_return_type = TYPE_VOID;
 
-// Variable global para el AST (definida en sintaxis.y)
+/*
+ * Variable global para el AST (definida en sintaxis.y)
+ */
 extern Nodo *ast;
 
-// Función principal del análisis semántico
+/*
+ * Función principal del análisis semántico
+ */
 int semantic_analysis(Nodo *ast_root) {
     if (!ast_root) {
         printf("Error: AST vacío para análisis semántico\n");
@@ -18,10 +24,7 @@ int semantic_analysis(Nodo *ast_root) {
     
     semantic_errors = 0;
     
-    // Analizar todo el programa
     analyze_node(ast_root);
-
-    // Analiza main
     verify_main_method();
     
     if (semantic_errors > 0) {
@@ -33,7 +36,9 @@ int semantic_analysis(Nodo *ast_root) {
     }
 }
 
-// Función para reportar errores semánticos
+/*
+ * Función para reportar errores semánticos
+ */
 void semantic_error(const char *message, int line) {
     fprintf(stderr, "Error semántico");
     if (line > 0) {
@@ -43,7 +48,9 @@ void semantic_error(const char *message, int line) {
     semantic_errors++;
 }
 
-// Convertir string de tipo a DataType
+/*
+ * Función para convertir string a DataType
+ */
 DataType get_type_from_string(const char *type_str) {
     if (!type_str) return TYPE_ERROR;
     
@@ -55,7 +62,9 @@ DataType get_type_from_string(const char *type_str) {
     return TYPE_ERROR;
 }
 
-// Convertir DataType a string
+/*
+ * Función para convertir DataType a string
+ */
 const char* type_to_string(DataType type) {
     switch (type) {
         case TYPE_INTEGER: return "integer";
@@ -67,12 +76,16 @@ const char* type_to_string(DataType type) {
     }
 }
 
-// Verificar compatibilidad de tipos
+/*
+ * Función para verificar compatibilidad de tipos entre dos datos distintos 
+ */
 int types_compatible(DataType type1, DataType type2) {
     return type1 == type2;
 }
 
-// Crear información de tipo
+/*
+ * Función para crear información de tipo
+ */
 TypeInfo* create_type_info(DataType type) {
     TypeInfo *info = malloc(sizeof(TypeInfo));
     if (!info) {
@@ -87,7 +100,9 @@ TypeInfo* create_type_info(DataType type) {
     return info;
 }
 
-// Liberar información de tipo
+/*
+ * Función para liberar información de tipo 
+ */
 void free_type_info(TypeInfo *info) {
     if (info) {
         if (info->param_types) {
@@ -97,12 +112,13 @@ void free_type_info(TypeInfo *info) {
     }
 }
 
+/*
+ * Función para verificar la existencia de un método main en el programa
+ */
 // Verificación método main
 int verify_main_method() {
-    // Buscar "main" en el scope global
     Symbol *main_symbol = NULL;
     
-    // Buscar solo en el scope global (nivel 0)
     for (int i = 0; i < global_table->num_symbols; i++) {
         if (strcmp(global_table->symbols[i].name, "main") == 0) {
             main_symbol = &global_table->symbols[i];
@@ -115,55 +131,41 @@ int verify_main_method() {
         return 0;
     }
     
-    // Verificar que es una función
     if (strncmp(main_symbol->type, "function:", 9) != 0) {
         semantic_error("main debe ser una función", 0);
         return 0;
     }
     
-    // Extraer tipo de retorno
-    const char *return_type = main_symbol->type + 9; // Saltar "function:"
-    
-    // Verificar que el tipo de retorno es válido (void o integer)
+    const char *return_type = main_symbol->type + 9;
     if (strcmp(return_type, "void") != 0 && strcmp(return_type, "integer") != 0) {
         semantic_error("main debe retornar void o integer", 0);
         return 0;
     }
     
-    // Verificar que main no tiene parámetros
-    // Esto lo hacemos buscando el scope de la función main
     SymbolTable *main_scope = get_function_scope("main");
     if (!main_scope) {
         semantic_error("No se encontró el scope de la función main", 0);
         return 0;
     }
     
-    // Contar símbolos que no sean variables locales (solo parámetros cuentan como error)
-    // En tu implementación actual, los parámetros se insertan en el scope de la función
-    // Si main tiene parámetros, aparecerán como símbolos en su scope
     int param_count = 0;
     for (int i = 0; i < main_scope->num_symbols; i++) {
         Symbol *sym = &main_scope->symbols[i];
-        // Los parámetros tienen tipos básicos (integer, bool)
-        // Las variables locales también, pero se declaran después en el cuerpo
-        // Para simplificar, asumimos que TODOS los símbolos en el scope de main
-        // que no sean declaraciones locales son parámetros
+    
         if (strcmp(sym->type, "integer") == 0 || strcmp(sym->type, "bool") == 0) {
             param_count++;
         }
     }
     
-    // NOTA: Esta verificación es simplificada. En una implementación completa,
-    // deberías distinguir entre parámetros y variables locales.
-    // Por ahora, si hay símbolos básicos en el scope de main, asumimos que son parámetros.
-    
     printf("Debug: main encontrado con tipo %s, scope tiene %d símbolos\n", 
            return_type, main_scope->num_symbols);
     
-    return 1; // main válido encontrado
+    return 1;
 }
 
-// Obtener tipo de retorno de un símbolo de función
+/*
+ * Función para obtener el tipo de retorno de un símbolo de una función
+ */
 DataType get_return_type(Symbol *sym) {
     if (!sym || !sym->type) return TYPE_ERROR;
     if (strncmp(sym->type, "function:", 9) == 0) {
@@ -172,7 +174,9 @@ DataType get_return_type(Symbol *sym) {
     return TYPE_ERROR;
 }
 
-// Análisis de nodo genérico (dispatcher)
+/*
+ * Función para analizar nodos genéricos (dispatcher)
+ */
 TypeInfo* analyze_node(Nodo *node) {
     if (!node) return NULL;
     
@@ -181,7 +185,6 @@ TypeInfo* analyze_node(Nodo *node) {
     switch (node->tipo) {
         case NODO_PROG:
         case NODO_ID:
-            // Solo procesar hermanos
             break;
             
         case NODO_INTEGER:
@@ -225,11 +228,9 @@ TypeInfo* analyze_node(Nodo *node) {
             break;
             
         default:
-            // Para otros tipos, no hacer nada especial
             break;
     }
     
-    // Procesar nodos hermanos
     if (node->siguiente) {
         analyze_node(node->siguiente);
     }
@@ -237,14 +238,15 @@ TypeInfo* analyze_node(Nodo *node) {
     return current_result;
 }
 
-// Análisis de operaciones binarias
+/*
+ * Función para analizar nodos de operaciones binarias
+ */
 TypeInfo* analyze_binary_operation(Nodo *op_node) {
     if (!op_node || op_node->tipo != NODO_OP) return NULL;
     
     TypeInfo *left_type = NULL;
     TypeInfo *right_type = NULL;
     
-    // Analizar operandos
     if (op_node->opBinaria.izq) {
         left_type = analyze_expression(op_node->opBinaria.izq);
     }
@@ -255,14 +257,12 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
     
     TypeInfo *result = create_type_info(TYPE_ERROR);
     
-    // Verificar compatibilidad según el operador
     switch (op_node->opBinaria.op) {
         case TOP_SUMA:
         case TOP_RESTA:
         case TOP_MULT:
         case TOP_DIV:
         case TOP_RESTO:
-            // Operaciones aritméticas: requieren enteros
             if (left_type && right_type && 
                 left_type->type == TYPE_INTEGER && right_type->type == TYPE_INTEGER) {
                 result->type = TYPE_INTEGER;
@@ -275,7 +275,6 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
         case TOP_MENOR:
         case TOP_MAYORIG:
         case TOP_MENORIG:
-            // Comparaciones: enteros -> bool
             if (left_type && right_type && 
                 left_type->type == TYPE_INTEGER && right_type->type == TYPE_INTEGER) {
                 result->type = TYPE_BOOL;
@@ -286,7 +285,6 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
             
         case TOP_COMP:
         case TOP_DESIGUAL:
-            // Igualdad/desigualdad: tipos compatibles -> bool
             if (left_type && right_type && types_compatible(left_type->type, right_type->type)) {
                 result->type = TYPE_BOOL;
             } else {
@@ -296,7 +294,6 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
             
         case TOP_AND:
         case TOP_OR:
-            // Operaciones lógicas: bool -> bool
             if (left_type && right_type && 
                 left_type->type == TYPE_BOOL && right_type->type == TYPE_BOOL) {
                 result->type = TYPE_BOOL;
@@ -306,7 +303,6 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
             break;
             
         case TOP_NOT:
-            // Negación: solo operando derecho, debe ser bool
             if (right_type && right_type->type == TYPE_BOOL) {
                 result->type = TYPE_BOOL;
             } else {
@@ -319,14 +315,15 @@ TypeInfo* analyze_binary_operation(Nodo *op_node) {
             break;
     }
     
-    // Liberar tipos temporales
     free_type_info(left_type);
     free_type_info(right_type);
     
     return result;
 }
 
-// Análisis de expresiones
+/*
+ * Función para analizar nodos de expresiones
+ */
 TypeInfo* analyze_expression(Nodo *expr) {
     if (!expr) return NULL;
     
@@ -362,11 +359,12 @@ TypeInfo* analyze_expression(Nodo *expr) {
     }
 }
 
-// Análisis de asignaciones
+/*
+ * Función para analizar nodos de asignaciones
+ */
 TypeInfo* analyze_assignment(Nodo *assign_node) {
     if (!assign_node || assign_node->tipo != NODO_ASSIGN) return NULL;
     
-    // Verificar que la variable existe
     Symbol *var_sym = search_symbol(assign_node->assign.id);
     if (!var_sym) {
         char error_msg[256];
@@ -376,14 +374,12 @@ TypeInfo* analyze_assignment(Nodo *assign_node) {
         return create_type_info(TYPE_ERROR);
     }
     
-    // Analizar expresión del lado derecho
     TypeInfo *expr_type = analyze_expression(assign_node->assign.expr);
     if (!expr_type) {
         semantic_error("Error en expresión de asignación", yylineno);
         return create_type_info(TYPE_ERROR);
     }
     
-    // Verificar compatibilidad de tipos
     DataType var_type = get_type_from_string(var_sym->type);
     if (!types_compatible(var_type, expr_type->type)) {
         char error_msg[256];
@@ -398,11 +394,12 @@ TypeInfo* analyze_assignment(Nodo *assign_node) {
     return result;
 }
 
-// Análisis de declaraciones
+/*
+ * Función para analizar nodos de declaraciones
+ */
 TypeInfo* analyze_declaration(Nodo *decl_node) {
     if (!decl_node || decl_node->tipo != NODO_DECL) return NULL;
     
-    // Si hay valor inicial, verificar compatibilidad
     if (decl_node->assign.expr) {
         Symbol *var_sym = search_symbol(decl_node->assign.id);
         if (!var_sym) {
@@ -430,11 +427,12 @@ TypeInfo* analyze_declaration(Nodo *decl_node) {
     return create_type_info(TYPE_VOID);
 }
 
-// Análisis de llamadas a métodos
+/*
+ * Función para analizar nodos de llamadas a métodos
+ */
 TypeInfo* analyze_method_call(Nodo *call_node) {
     if (!call_node || call_node->tipo != NODO_METHOD_CALL) return NULL;
     
-    // Verificar que la función existe
     Symbol *func_sym = search_symbol(call_node->method_call.nombre);
     if (!func_sym) {
         char error_msg[256];
@@ -444,7 +442,6 @@ TypeInfo* analyze_method_call(Nodo *call_node) {
         return create_type_info(TYPE_ERROR);
     }
     
-    // Verificar que es una función
     if (get_type_from_string(func_sym->type) != TYPE_FUNCTION) {
         char error_msg[256];
         snprintf(error_msg, sizeof(error_msg), 
@@ -453,16 +450,16 @@ TypeInfo* analyze_method_call(Nodo *call_node) {
         return create_type_info(TYPE_ERROR);
     }
     
-    // Analizar argumentos (simplificado)
     if (call_node->method_call.args) {
         analyze_node(call_node->method_call.args);
     }
     
-    // Retornar el tipo de retorno real de la función
     return create_type_info(get_return_type(func_sym));
 }
 
-// Análisis de definiciones de métodos
+/*
+ * Función para analizar nodos de métodos
+ */
 TypeInfo* analyze_method(Nodo *method_node) {
     if (!method_node || method_node->tipo != NODO_METHOD) return NULL;
     
@@ -485,23 +482,22 @@ TypeInfo* analyze_method(Nodo *method_node) {
         semantic_error("Scope de función no encontrado", yylineno);
     }
     
-    // Analizar cuerpo de la función si existe
     if (method_node->method.body) {
         analyze_node(method_node->method.body);
     }
     
-    // Restaurar
     current_table = old_current;
     current_function_return_type = old_return_type;
     
     return create_type_info(TYPE_FUNCTION);
 }
 
-// Análisis de sentencias if
+/*
+ * Función para analizar nodos if
+ */
 TypeInfo* analyze_if_statement(Nodo *if_node) {
     if (!if_node || if_node->tipo != NODO_IF) return NULL;
     
-    // Analizar condición
     TypeInfo *cond_type = analyze_expression(if_node->if_stmt.cond);
     if (cond_type) {
         if (cond_type->type != TYPE_BOOL) {
@@ -510,12 +506,10 @@ TypeInfo* analyze_if_statement(Nodo *if_node) {
         free_type_info(cond_type);
     }
     
-    // Analizar bloque then
     if (if_node->if_stmt.then_block) {
         analyze_node(if_node->if_stmt.then_block);
     }
     
-    // Analizar bloque else si existe
     if (if_node->if_stmt.else_block) {
         analyze_node(if_node->if_stmt.else_block);
     }
@@ -523,11 +517,12 @@ TypeInfo* analyze_if_statement(Nodo *if_node) {
     return create_type_info(TYPE_VOID);
 }
 
-// Análisis de sentencias while
+/*
+ * Función para analizar nodos while
+ */
 TypeInfo* analyze_while_statement(Nodo *while_node) {
     if (!while_node || while_node->tipo != NODO_WHILE) return NULL;
     
-    // Analizar condición
     TypeInfo *cond_type = analyze_expression(while_node->while_stmt.cond);
     if (cond_type) {
         if (cond_type->type != TYPE_BOOL) {
@@ -536,7 +531,6 @@ TypeInfo* analyze_while_statement(Nodo *while_node) {
         free_type_info(cond_type);
     }
     
-    // Analizar cuerpo del while
     if (while_node->while_stmt.body) {
         analyze_node(while_node->while_stmt.body);
     }
@@ -544,14 +538,15 @@ TypeInfo* analyze_while_statement(Nodo *while_node) {
     return create_type_info(TYPE_VOID);
 }
 
-// Análisis de sentencias return
+/*
+ * Función para analizar nodos de return
+ */
 TypeInfo* analyze_return_statement(Nodo *return_node) {
     if (!return_node || return_node->tipo != NODO_RETURN) return NULL;
     
     if (return_node->ret_expr) {
         TypeInfo *return_type = analyze_expression(return_node->ret_expr);
         if (return_type) {
-            // Verificar compatibilidad con tipo de retorno de función actual
             if (!types_compatible(current_function_return_type, return_type->type)) {
                 char error_msg[256];
                 snprintf(error_msg, sizeof(error_msg), 
@@ -563,7 +558,6 @@ TypeInfo* analyze_return_statement(Nodo *return_node) {
             free_type_info(return_type);
         }
     } else {
-        // Return vacío
         if (current_function_return_type != TYPE_VOID) {
             semantic_error("Función no-void debe retornar un valor", yylineno);
         }

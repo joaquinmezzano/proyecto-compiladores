@@ -7,6 +7,9 @@
 #include "ast.h"
 #include "symtab.h"
 
+/*
+ * Tipos de datos
+ */
 typedef enum {
     TYPE_INTEGER,
     TYPE_BOOL,
@@ -15,6 +18,9 @@ typedef enum {
     TYPE_ERROR
 } DataType;
 
+/*
+ * Tipos de información
+ */
 typedef struct {
     DataType type;
     int is_function;
@@ -23,6 +29,9 @@ typedef struct {
     DataType *param_types;
 } TypeInfo;
 
+/*
+ * Declaraciones de variables y funciones a definir 
+ */
 extern int yylineno;
 extern int semantic_errors;
 

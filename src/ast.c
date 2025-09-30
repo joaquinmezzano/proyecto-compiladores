@@ -5,6 +5,9 @@
 #include <string.h>
 #include "ast.h"
 
+/*
+ * Constructor de un nodo de tipo ID
+ */
 Nodo *nodo_ID(char *nombre) {
     if (!nombre) {
         fprintf(stderr, "Error: nodo_ID recibió nombre NULL\n");
@@ -25,6 +28,9 @@ Nodo *nodo_ID(char *nombre) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo bool
+ */
 Nodo *nodo_bool(int val_bool) {
     Nodo *n = malloc(sizeof(Nodo));
     if (!n) {
@@ -40,6 +46,9 @@ Nodo *nodo_bool(int val_bool) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo int
+ */
 Nodo *nodo_integer(int val_int) {
     Nodo *n = malloc(sizeof(Nodo));
     if (!n) {
@@ -55,6 +64,9 @@ Nodo *nodo_integer(int val_int) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo operación binaria
+ */
 Nodo *nodo_op(TipoOP op, Nodo *izq, Nodo *der) {
     Nodo *n = malloc(sizeof(Nodo));
     if (!n) {
@@ -75,6 +87,9 @@ Nodo *nodo_op(TipoOP op, Nodo *izq, Nodo *der) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo return
+ */
 Nodo *nodo_return(Nodo *ret_expr) {
     Nodo *n = malloc(sizeof(Nodo));
     if (!n) {
@@ -92,6 +107,9 @@ Nodo *nodo_return(Nodo *ret_expr) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo asignación
+ */
 Nodo *nodo_assign(char *id, Nodo *expr) {
     if (!id || !expr) {
         fprintf(stderr, "Error: nodo_assign recibió id o expr NULL\n");
@@ -115,6 +133,9 @@ Nodo *nodo_assign(char *id, Nodo *expr) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo declaración
+ */
 Nodo *nodo_decl(char *id, Nodo *expr) {
     if (!id) {
         fprintf(stderr, "Error: nodo_decl recibió id NULL\n");
@@ -138,6 +159,9 @@ Nodo *nodo_decl(char *id, Nodo *expr) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo metodo
+ */
 Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body) {
     if (!nombre) {
         fprintf(stderr, "Error: nodo_method recibió nombre NULL\n");
@@ -163,6 +187,9 @@ Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo llamada a metodo
+ */
 Nodo *nodo_method_call(char *nombre, Nodo *args) {
     if (!nombre) {
         fprintf(stderr, "Error: nodo_method_call recibió nombre NULL\n");
@@ -186,6 +213,9 @@ Nodo *nodo_method_call(char *nombre, Nodo *args) {
     return n;
 }
 
+/*
+ * Constructor de un nodo de tipo if
+ */
 Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block) {
     Nodo *n = malloc(sizeof(Nodo));
     if (!n) {
@@ -207,7 +237,9 @@ Nodo *nodo_if(Nodo *cond, Nodo *then_block, Nodo *else_block) {
     return n;
 }
 
-// Corregir la función nodo_while para usar la unión correctamente
+/*
+ * Constructor de un nodo de tipo while
+ */
 Nodo* nodo_while(Nodo* condicion, Nodo* bloque) {
     Nodo* nodo = (Nodo*)malloc(sizeof(Nodo));
     if (!nodo) {
@@ -218,7 +250,7 @@ Nodo* nodo_while(Nodo* condicion, Nodo* bloque) {
     nodo->padre = NULL;
     nodo->siguiente = NULL;
     nodo->tipo = NODO_WHILE;
-    nodo->nombre = strdup("while");  // Para imprimir
+    nodo->nombre = strdup("while");
     nodo->while_stmt.cond = condicion;
     nodo->while_stmt.body = bloque;
 
@@ -228,13 +260,14 @@ Nodo* nodo_while(Nodo* condicion, Nodo* bloque) {
     return nodo;
 }
 
+/*
+ * Función para imprimir un nodo
+ */
 void imprimir_nodo(Nodo *nodo, int indent) {
     if (!nodo) return;
 
-    // Indentación según el nivel
     for (int i = 0; i < indent; i++) printf("  ");
 
-    // Mostrar según tipo de nodo
     switch (nodo->tipo) {
         case NODO_PROG:
             printf("ID: program\n");
@@ -244,7 +277,6 @@ void imprimir_nodo(Nodo *nodo, int indent) {
             if (nodo->assign.expr) imprimir_nodo(nodo->assign.expr, indent + 1);
             break;
         case NODO_ID:
-            // Detecta si es parámetro (hijo de METHOD)
             if (nodo->padre && nodo->padre->tipo == NODO_METHOD) {
                 printf("PARAM: %s\n", nodo->nombre);
             } else {
@@ -290,53 +322,50 @@ void imprimir_nodo(Nodo *nodo, int indent) {
         case NODO_METHOD:
             printf("METHOD: %s\n", nodo->method.nombre);
             if (nodo->method.params) {
-                imprimir_nodo(nodo->method.params, indent + 1);  // PARAM: x
+                imprimir_nodo(nodo->method.params, indent + 1);
             }
             if (nodo->method.body) {
-                imprimir_nodo(nodo->method.body, indent + 1);  // Statements dentro
+                imprimir_nodo(nodo->method.body, indent + 1);
             }
             break;
         case NODO_METHOD_CALL:
             printf("METHOD CALL: %s\n", nodo->method_call.nombre);
             if (nodo->method_call.args) {
-                imprimir_nodo(nodo->method_call.args, indent + 1);  // Args como hijos
+                imprimir_nodo(nodo->method_call.args, indent + 1);
             }
             break;
         case NODO_IF:
             printf("IF\n");
-            imprimir_nodo(nodo->if_stmt.cond, indent + 1);  // Condición
-            imprimir_nodo(nodo->if_stmt.then_block, indent + 1);  // Then block
+            imprimir_nodo(nodo->if_stmt.cond, indent + 1);
+            imprimir_nodo(nodo->if_stmt.then_block, indent + 1); 
             if (nodo->if_stmt.else_block) {
-                // Indentación correcta para ELSE
                 for (int i = 0; i < indent + 1; i++) printf("  ");
                 printf("ELSE\n");
-                imprimir_nodo(nodo->if_stmt.else_block, indent + 2);  // Contenido del else con +2 indent
+                imprimir_nodo(nodo->if_stmt.else_block, indent + 2);
             }
             break;
-        case NODO_WHILE:  // <-- Agregar caso para WHILE
+        case NODO_WHILE:
             printf("WHILE\n");
-            imprimir_nodo(nodo->while_stmt.cond, indent + 1);  // Condición
-            imprimir_nodo(nodo->while_stmt.body, indent + 1);  // Body del while
+            imprimir_nodo(nodo->while_stmt.cond, indent + 1);
+            imprimir_nodo(nodo->while_stmt.body, indent + 1);
             break;
         case NODO_SENT:
-            // Caso para eliminar warning (no usado actualmente)
             break;
         case NODO_BLOCK:
-            // Caso para eliminar warning (no usado actualmente)
-            // Si tuviera statements, los imprimiríamos aquí
             break;
         default:
             printf("TIPO_DESCONOCIDO\n");
             break;
     }
 
-    // Imprimir nodo siguiente si existe (hermanos al mismo nivel)
     if (nodo->siguiente) {
         imprimir_nodo(nodo->siguiente, indent);
     }
 }
 
-// Función para generar DOT para Graphviz (sin cambios, solo agregar caso WHILE)
+/*
+ * Funciones y declaraciones para generar el DOT para Graphviz 
+ */
 static int node_counter = 0;
 
 char* get_unique_node_id() {
@@ -351,7 +380,6 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
     char* my_id = get_unique_node_id();
     char label[256] = {0};
 
-    // Construir label basado en tipo
     switch (nodo->tipo) {
         case NODO_PROG:
             strcpy(label, "ID: program");
@@ -411,7 +439,7 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
         case NODO_IF:
             strcpy(label, "IF");
             break;
-        case NODO_WHILE:  // <-- Agregar caso para WHILE
+        case NODO_WHILE:
             strcpy(label, "WHILE");
             break;
         case NODO_SENT:
@@ -423,15 +451,12 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
             break;
     }
 
-    // Escribir nodo en DOT
     fprintf(dot_file, "  \"%s\" [label=\"%s\"];\n", my_id, label);
 
-    // Conectar a padre si existe
     if (parent_id) {
         fprintf(dot_file, "  \"%s\" -> \"%s\";\n", parent_id, my_id);
     }
 
-    // Recursión para hijos específicos
     switch (nodo->tipo) {
         case NODO_DECL:
             if (nodo->assign.expr) generar_dot_ast(nodo->assign.expr, dot_file, my_id);
@@ -460,7 +485,7 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
                 generar_dot_ast(nodo->if_stmt.else_block, dot_file, my_id);
             }
             break;
-        case NODO_WHILE:  // <-- Agregar caso para WHILE
+        case NODO_WHILE: 
             if (nodo->while_stmt.cond) generar_dot_ast(nodo->while_stmt.cond, dot_file, my_id);
             if (nodo->while_stmt.body) generar_dot_ast(nodo->while_stmt.body, dot_file, my_id);
             break;
@@ -468,7 +493,6 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
             break;
     }
 
-    // Recursión para hermanos (siguiente)
     if (nodo->siguiente) {
         generar_dot_ast(nodo->siguiente, dot_file, parent_id);
     }
@@ -476,6 +500,9 @@ void generar_dot_ast(Nodo *nodo, FILE *dot_file, char* parent_id) {
     free(my_id);
 }
 
+/*
+ * Función para generar el PNG del AST
+ */
 void generar_png_ast(Nodo *ast) {
     if (!ast) return;
 
@@ -503,6 +530,9 @@ void generar_png_ast(Nodo *ast) {
     }
 }
 
+/*
+ * Función para liberar el nodo cuando ya no sea necesario 
+ */
 void nodo_libre(Nodo *nodo) {
     if (!nodo) return;
 
@@ -533,7 +563,7 @@ void nodo_libre(Nodo *nodo) {
             nodo_libre(nodo->if_stmt.then_block);
             nodo_libre(nodo->if_stmt.else_block);
             break;
-        case NODO_WHILE:  // <-- Agregar caso para WHILE
+        case NODO_WHILE:
             nodo_libre(nodo->while_stmt.cond);
             nodo_libre(nodo->while_stmt.body);
             break;
@@ -545,7 +575,6 @@ void nodo_libre(Nodo *nodo) {
         case NODO_SENT:
         case NODO_PROG:
         case NODO_BLOCK:
-            // Casos vacíos para eliminar warnings
             break;
         default:
             break;

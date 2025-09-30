@@ -9,27 +9,35 @@
 #include "symtab.h"
 #include "semantics.h"
 
-/* Declarar variables del lexer */
+/*
+ * Declarar variables del lexer
+ */
 extern int yylineno;
 extern char *yytext;
 
 void yyerror(const char *s);
 int yylex(void);
 
-Nodo *ast = NULL; // Variable global para guardar el AST
+Nodo *ast = NULL;
 %}
 
-/* Habilitar mensajes de error detallados */
+/*
+ * Habilitar mensajes de error detallados
+ */
 %define parse.error verbose
 
-/* Unión para los valores de los tokens */
+/*
+ * Unión para los valores de los tokens
+ */
 %union {
     int32_t ival;
     char *sval;
     struct Nodo *node;
 }
 
-/* Tokens con tipo */
+/*
+ * Tokens con tipo
+ */
 %token <sval> ID
 %token <ival> INTEGER_LITERAL
 %token <ival> BOOL_LITERAL
@@ -39,7 +47,9 @@ Nodo *ast = NULL; // Variable global para guardar el AST
 %token OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP OP_AND OP_OR OP_NOT
 %token PYC COMA
 
-/* Precedences */
+/*
+ * Precedencias
+ */
 %left OP_OR
 %left OP_AND
 %left OP_MAYOR OP_MENOR OP_MAYORIG OP_MENORIG OP_DESIGUAL OP_COMP
@@ -48,7 +58,9 @@ Nodo *ast = NULL; // Variable global para guardar el AST
 %right OP_NOT
 %right UMINUS
 
-/* Declarar tipos de las reglas que producen Nodo* */
+/*
+ * Declarar tipos de las reglas que producen Nodo*
+ */
 %type <node> program decl_list decl var_decl_list var_decl method_decl param_list_opt param_list
 %type <node> block statement_list statement else_opt expr_opt arg_list_opt arg_list expr method_call
 %type <node> TYPE method_body
@@ -59,7 +71,7 @@ program
     : PROGRAM LLAA decl_list LLAC
       {
           Nodo *prog = nodo_ID("program");
-          prog->siguiente = $3;  // Enlaza lista de declaraciones (métodos)
+          prog->siguiente = $3;
           ast = prog;
           $$ = prog;
       }
@@ -92,12 +104,12 @@ decl_list
     ;
 
 decl
-    : var_decl   { $$ = $1; }
+    : var_decl    { $$ = $1; }
     | method_decl { $$ = $1; }
     ;
 
 var_decl_list
-    : /* empty */ { $$ = NULL; }
+    : /* empty */            { $$ = NULL; }
     | var_decl_list var_decl { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
     ;
 
@@ -120,7 +132,7 @@ var_decl
           } else {
               insert_symbol($2, "unknown");
           }
-          $$ = nodo_decl($2, NULL); // Sin valor inicial
+          $$ = nodo_decl($2, NULL);
       }
     ;
 
@@ -135,7 +147,7 @@ method_decl
           sprintf(func_type, "function:%s", $1->nombre);
           insert_symbol($2, func_type);
           nodo_libre($1);
-          push_scope_for_function($2); // Create scope before parameters
+          push_scope_for_function($2);
       }
       param_list_opt PARC method_body
       {
@@ -145,7 +157,7 @@ method_decl
     | VOID ID PARA
       {
           insert_symbol($2, "function:void");
-          push_scope_for_function($2); // Create scope before parameters
+          push_scope_for_function($2);
       }
       param_list_opt PARC method_body
       {
@@ -164,7 +176,7 @@ method_body
 
 param_list_opt
     : /* empty */ { $$ = NULL; }
-    | param_list { $$ = $1; }
+    | param_list  { $$ = $1; }
     ;
 
 param_list
@@ -211,7 +223,7 @@ block
     ;
 
 statement_list
-    : /* empty */ { $$ = NULL; }
+    : /* empty */              { $$ = NULL; }
     | statement_list statement { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
     ;
 
@@ -235,21 +247,21 @@ statement
 
 else_opt
     : /* empty */ { $$ = NULL; }
-    | ELSE block { $$ = $2; }
+    | ELSE block  { $$ = $2; }
     ;
 
 expr_opt
     : /* empty */ { $$ = NULL; }
-    | expr { $$ = $1; }
+    | expr        { $$ = $1; }
     ;
 
 arg_list_opt
     : /* empty */ { $$ = NULL; }
-    | arg_list { $$ = $1; }
+    | arg_list    { $$ = $1; }
     ;
 
 arg_list
-    : expr { $$ = $1; }
+    : expr               { $$ = $1; }
     | arg_list COMA expr { $$ = $1; if ($1) $1->siguiente = $3; }
     ;
 
@@ -295,7 +307,6 @@ method_call
       }
     ;
 
-/* Regla de producción para TYPE */
 TYPE
     : INTEGER { $$ = nodo_ID("integer"); }
     | BOOL    { $$ = nodo_ID("bool"); }
@@ -325,9 +336,9 @@ int main(int argc, char **argv) {
 
         print_symtab();
 
-        printf("\n ================================");
+        printf(" ------------------------------");
         printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
-        printf("\n ================================\n");
+        printf("\n ------------------------------\n");
         
         int semantic_result = semantic_analysis(ast);
         

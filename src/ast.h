@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 
+/*
+ * Tipos de nodos 
+ */
 typedef enum {
     NODO_PROG,
     NODO_DECL,
@@ -16,10 +19,13 @@ typedef enum {
     NODO_METHOD,
     NODO_METHOD_CALL,
     NODO_IF,
-    NODO_WHILE,  // <-- Agregar este tipo
+    NODO_WHILE,
     NODO_BLOCK
 } TipoNodo;
 
+/*
+ * Tipos de operaciones binarias 
+ */
 typedef enum {
     TOP_SUMA,
     TOP_RESTA,
@@ -38,10 +44,13 @@ typedef enum {
     TOP_NOT
 } TipoOP;
 
+/*
+ * Definición de nodo 
+ */
 typedef struct Nodo {
     TipoNodo tipo;
     struct Nodo *padre;
-    struct Nodo *siguiente;  // Para listas (params, args, statements, etc.)
+    struct Nodo *siguiente;
 
     union {
         int val_int;
@@ -61,27 +70,23 @@ typedef struct Nodo {
 
         struct Nodo *ret_expr;
 
-        // METHOD
         struct {
             char *nombre;
-            struct Nodo *params;  // Lista de NODO_ID enlazados por siguiente
-            struct Nodo *body;    // El block (statements enlazados)
+            struct Nodo *params;
+            struct Nodo *body;
         } method;
 
-        // METHOD_CALL
         struct {
             char *nombre;
-            struct Nodo *args;    // Lista de expr enlazados por siguiente
+            struct Nodo *args;
         } method_call;
 
-        // IF
         struct {
             struct Nodo *cond;
             struct Nodo *then_block;
             struct Nodo *else_block;
         } if_stmt;
 
-        // WHILE  <-- Agregar esta estructura
         struct {
             struct Nodo *cond;
             struct Nodo *body;
@@ -89,6 +94,9 @@ typedef struct Nodo {
     };
 } Nodo;
 
+/*
+ * Declaraciones de funciones a definir 
+ */
 Nodo *nodo_ID(char *nombre);
 Nodo *nodo_bool(int val_bool);
 Nodo *nodo_integer(int val_int);

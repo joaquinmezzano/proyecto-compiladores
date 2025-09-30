@@ -87,10 +87,13 @@ echo "==> Compilación exitosa. Ejecutable: $OUTPUT"
 
 # Ejecutar parser y capturar salida
 echo "==> Ejecutando parser con análisis semántico en $FILE..."
-echo "=================================================="
+echo ""
+echo "--------------------------------------------------"
+echo ""
 
 if ./"$OUTPUT" < "$FILE"; then
-    echo "=============================================="
+    echo "----------------------------------------------"
+    echo ""
     echo "✓ Análisis completado exitosamente."
     
     # Mostrar archivos generados si existen
@@ -99,14 +102,17 @@ if ./"$OUTPUT" < "$FILE"; then
     
     # Opcional: mostrar estadísticas del archivo analizado
     echo "✓ Archivo analizado: $FILE ($(wc -l < "$FILE") líneas)"
+    echo ""
     
 else
-    echo "=============================================="
+    echo "----------------------------------------------"
+    echo ""
     echo "✗ Análisis terminó con errores."
     echo ""
     echo "Para debug, revisar:"
     echo "- sintaxis.output: conflictos del parser"
     echo "- Mensajes de error mostrados arriba"
     echo "- Verificar sintaxis en $FILE"
+    echo ""
     exit 1
 fi
