@@ -115,7 +115,7 @@ int get_current_scope_level() {
 /*
  * Función para insertar un simbolo en el scope actual
  */
-void insert_symbol(char *name, char *type) {
+void insert_symbol(char *name, char *type, int isparam) {
     for (int i = 0; i < current_table->num_symbols; i++) {
         if (strcmp(current_table->symbols[i].name, name) == 0) {
             fprintf(stderr, "Warning: redeclaración de '%s' en scope actual\n", name);
@@ -133,6 +133,7 @@ void insert_symbol(char *name, char *type) {
     Symbol *new_sym = &current_table->symbols[current_table->num_symbols];
     new_sym->name = strdup(name);
     new_sym->type = strdup(type);
+    new_sym->is_param = isparam;
     new_sym->scope_level = get_current_scope_level();
     
     current_table->num_symbols++;

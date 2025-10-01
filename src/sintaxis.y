@@ -117,20 +117,20 @@ var_decl
     : TYPE ID OP_IGUAL expr PYC
       {
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre);
+              insert_symbol($2, $1->nombre, 0);
               nodo_libre($1);
           } else {
-              insert_symbol($2, "unknown");
+              insert_symbol($2, "unknown", 0);
           }
           $$ = nodo_decl($2, $4);
       }
     | TYPE ID PYC
       {
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre);
+              insert_symbol($2, $1->nombre, 0);
               nodo_libre($1);
           } else {
-              insert_symbol($2, "unknown");
+              insert_symbol($2, "unknown", 0);
           }
           $$ = nodo_decl($2, NULL);
       }
@@ -145,7 +145,7 @@ method_decl
           }
           char func_type[100];
           sprintf(func_type, "function:%s", $1->nombre);
-          insert_symbol($2, func_type);
+          insert_symbol($2, func_type, 0);
           nodo_libre($1);
           push_scope_for_function($2);
       }
@@ -156,7 +156,7 @@ method_decl
       }
     | VOID ID PARA
       {
-          insert_symbol($2, "function:void");
+          insert_symbol($2, "function:void", 0);
           push_scope_for_function($2);
       }
       param_list_opt PARC method_body
@@ -183,20 +183,20 @@ param_list
     : TYPE ID
       {
           if ($1 && $1->tipo == NODO_ID) {
-              insert_symbol($2, $1->nombre);
+              insert_symbol($2, $1->nombre, 1);
               nodo_libre($1);
           } else {
-              insert_symbol($2, "unknown");
+              insert_symbol($2, "unknown", 1);
           }
           $$ = nodo_ID($2);
       }
     | param_list COMA TYPE ID
       {
           if ($3 && $3->tipo == NODO_ID) {
-              insert_symbol($4, $3->nombre);
+              insert_symbol($4, $3->nombre, 1);
               nodo_libre($3);
           } else {
-              insert_symbol($4, "unknown");
+              insert_symbol($4, "unknown", 1);
           }
           $$ = $1;
           if ($1) $1->siguiente = nodo_ID($4);

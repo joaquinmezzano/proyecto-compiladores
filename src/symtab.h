@@ -11,7 +11,8 @@
 typedef struct Symbol {
     char *name;
     char *type;
-    int scope_level; 
+    int is_param;
+    int scope_level;
 } Symbol;
 
 /*
@@ -37,7 +38,7 @@ void push_scope(void);
 void push_scope_for_function(char *function_name);
 void pop_scope(void);
 Symbol* search_symbol(char *name);
-void insert_symbol(char *name, char *type);
+void insert_symbol(char *name, char *type, int isparam);
 void free_symtab(void);
 void print_symtab(void);
 void debug_print_scopes(void);

@@ -115,7 +115,6 @@ void free_type_info(TypeInfo *info) {
 /*
  * Función para verificar la existencia de un método main en el programa
  */
-// Verificación método main
 int verify_main_method() {
     Symbol *main_symbol = NULL;
     
@@ -137,6 +136,7 @@ int verify_main_method() {
     }
     
     const char *return_type = main_symbol->type + 9;
+    
     if (strcmp(return_type, "void") != 0 && strcmp(return_type, "integer") != 0) {
         semantic_error("main debe retornar void o integer", 0);
         return 0;
@@ -151,14 +151,18 @@ int verify_main_method() {
     int param_count = 0;
     for (int i = 0; i < main_scope->num_symbols; i++) {
         Symbol *sym = &main_scope->symbols[i];
-    
-        if (strcmp(sym->type, "integer") == 0 || strcmp(sym->type, "bool") == 0) {
+        if (sym->is_param) {
             param_count++;
         }
     }
     
-    printf("Debug: main encontrado con tipo %s, scope tiene %d símbolos\n", 
-           return_type, main_scope->num_symbols);
+    if (param_count > 0) {
+        semantic_error("El método 'main' no debe tener parámetros", 0);
+        return 0;
+    }
+    
+    printf("Debug: main válido con tipo %s, parámetros = %d\n",
+           return_type, param_count);
     
     return 1;
 }
@@ -449,9 +453,41 @@ TypeInfo* analyze_method_call(Nodo *call_node) {
         semantic_error(error_msg, yylineno);
         return create_type_info(TYPE_ERROR);
     }
-    
-    if (call_node->method_call.args) {
-        analyze_node(call_node->method_call.args);
+
+    SymbolTable *func_scope = get_function_scope(call_node->method_call.nombre);
+    if (func_scope) {
+        Nodo *arg = call_node->method_call.args;
+        int param_idx = 0;
+        int param_count = 0;
+        for (int i = 0; i < func_scope->num_symbols; i++) {
+            Symbol *sym = &func_scope->symbols[i];
+            if (sym->is_param) param_count++;
+        }
+        
+        for (int i = 0; i < func_scope->num_symbols; i++) {
+            Symbol *param_sym = &func_scope->symbols[i];
+            if (!param_sym->is_param) continue;
+            if (!arg) {
+                semantic_error("Cantidad de argumentos insuficiente en llamada a función", yylineno);
+                break;
+            }
+            TypeInfo *arg_type = analyze_expression(arg);
+            DataType param_type = get_type_from_string(param_sym->type);
+            if (!types_compatible(param_type, arg_type->type)) {
+                char error_msg[256];
+                snprintf(error_msg, sizeof(error_msg),
+                        "Tipo de argumento %d incorrecto en llamada a '%s': esperado %s, recibido %s",
+                        param_idx + 1, call_node->method_call.nombre,
+                        type_to_string(param_type), type_to_string(arg_type->type));
+                semantic_error(error_msg, yylineno);
+            }
+            free_type_info(arg_type);
+            arg = arg->siguiente;
+            param_idx++;
+        }
+        if (arg) {
+            semantic_error("Demasiados argumentos en llamada a función", yylineno);
+        }
     }
     
     return create_type_info(get_return_type(func_sym));
