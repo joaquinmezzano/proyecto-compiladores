@@ -1,0 +1,14 @@
+program {
+    integer value = 25;
+    bool booleanres = true;
+
+    integer dif_scope_def(integer p) {
+        integer general = 5;
+        return p-general;
+    }
+
+    void main() {
+        integer res = dif_scope_def(booleanres);
+        return ;
+    }
+}
