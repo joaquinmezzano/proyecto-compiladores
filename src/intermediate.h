@@ -1,6 +1,9 @@
 #ifndef INTERMEDIATE_H
 #define INTERMEDIATE_H
 
+#include "ast.h"
+#include "symtab.h"
+
 typedef enum {
     IR_LOAD,
     IR_STORE,
@@ -60,10 +63,18 @@ typedef struct IRList {
 
 void ir_init(IRList *list);
 void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol *result);
+void ir_print(IRList *list);
+void ir_save_to_file(IRList *list, const char *filename);
+void ir_free(IRList *list);
+
 IRSymbol *new_temp_symbol();
 IRSymbol *new_label_symbol();
 IRSymbol *new_const_symbol(int value, int is_bool);
 IRSymbol *new_var_symbol(const char *name);
 IRSymbol *new_func_symbol(const char *name);
+void free_ir_sybol(IRSymbol *sym);
+
+IRSymbol *gen_code(Nodo *node, IRList *list);
+int generate_intermediate_code(Nodo *ast);
 
 #endif
