@@ -52,4 +52,18 @@ typedef struct IRCode {
     IRSymbol *result;
 } IRCode;
 
+typedef struct IRList {
+    IRCode *codes;
+    int size;
+    int capacity;
+} IRList;
+
+void ir_init(IRList *list);
+void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol *result);
+IRSymbol *new_temp_symbol();
+IRSymbol *new_label_symbol();
+IRSymbol *new_const_symbol(int value, int is_bool);
+IRSymbol *new_var_symbol(const char *name);
+IRSymbol *new_func_symbol(const char *name);
+
 #endif
