@@ -8,9 +8,11 @@ PARSER="src/sintaxis.y"
 AST_SOURCE="src/ast.c"
 SYMTAB_SOURCE="src/symtab.c"
 SEMANTICS_SOURCE="src/semantics.c"
+INTERMEDIATE_SOURCE="src/intermediate.c"
 AST_HEADER="src/ast.h"
 SYMTAB_HEADER="src/symtab.h"
 SEMANTICS_HEADER="src/semantics.h"
+INTERMEDIATE_HEADER="src/intermediate.h"
 OUTPUT="c-tds"
 
 # Función de ayuda si se llama con --help
@@ -47,7 +49,7 @@ fi
 
 # Verificar que todos los archivos fuente existen
 echo "==> Verificando archivos fuente..."
-for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE"; do
+for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE"; do
     if [ ! -f "$archivo" ]; then
         echo "Error: el archivo fuente '$archivo' no existe."
         exit 1
@@ -55,7 +57,7 @@ for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOU
 done
 
 # Verificar que todos los archivos header existen
-for archivo in "$AST_HEADER" "$SYMTAB_HEADER" "$SEMANTICS_HEADER"; do
+for archivo in "$AST_HEADER" "$SYMTAB_HEADER" "$SEMANTICS_HEADER" "$INTERMEDIATE_HEADER"; do
     if [ ! -f "$archivo" ]; then
         echo "Error: el archivo header '$archivo' no existe."
         exit 1
@@ -64,7 +66,7 @@ done
 
 # Limpiar archivos generados anteriores
 echo "==> Limpiando archivos generados anteriores..."
-rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png
+rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png inter.s
 
 # Generar lexer
 echo "==> Generando lexer con Flex..."
@@ -81,7 +83,7 @@ gcc -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200809L -g \
     -Wno-sign-compare -Wno-unused-function -Wno-unused-parameter \
     -o "$OUTPUT" \
     sintaxis.tab.c lex.yy.c \
-    "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE"
+    "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE"
 
 echo "==> Compilación exitosa. Ejecutable: $OUTPUT"
 
@@ -99,6 +101,7 @@ if ./"$OUTPUT" < "$FILE"; then
     # Mostrar archivos generados si existen
     [ -f "ast_tree.png" ] && echo "✓ AST generado: ast_tree.png"
     [ -f "sintaxis.output" ] && echo "✓ Reporte de parser: sintaxis.output"
+    [ -f "inter.s" ] && echo "✓ Código intermedio generado: inter.s"
     
     # Opcional: mostrar estadísticas del archivo analizado
     echo "✓ Archivo analizado: $FILE ($(wc -l < "$FILE") líneas)"
