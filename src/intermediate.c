@@ -21,6 +21,16 @@ void ir_init(IRList *list) {
 }
 
 void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol *result) {
+    // Redimensionar si no hay espacio
+    if (list->size >= list->capacity) {
+        list->capacity = (list->capacity == 0) ? 8 : list->capacity * 2;
+        list->codes = realloc(list->codes, list->capacity * sizeof(IRCode));
+        if (!list->codes) {
+            fprintf(stderr, "Error: no se pudo redimensionar la lista de código intermedio\n");
+            exit(1);
+        }
+    }
+    
     IRCode *code = &list->codes[list->size++];
     code->op = op;
     code->arg1 = arg1;
