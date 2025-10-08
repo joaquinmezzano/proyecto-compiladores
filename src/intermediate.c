@@ -8,7 +8,7 @@ static const char *ir_names[] = {
     "LOAD", "STORE", "ADD", "SUB", "UMINUS", "MUL", "DIV", "MOD",
     "AND", "OR", "NOT", "EQ", "NEQ", "LT", "LE", "GT", "GE", "LABEL",
     "GOTO", "IF_FALSE", "IF_TRUE", "RETURN", "CALL", "METHOD", "EXTERN",
-    "PARAM"
+    "PARAM", "LOAD_PARAM"
 };
 
 static int temp_count = 0;
@@ -294,13 +294,19 @@ IRSymbol *gen_code(Nodo *node, IRList *list) {
                 return NULL;
             }
             
+            if (node->method_call.args) {
+                Nodo *arg = node->method_call.args;
+                while (arg) {
+                    IRSymbol *arg_temp = gen_code(arg, list);
+                    if (arg_temp) {
+                        ir_emit(list, IR_CALL_PARAM, arg_temp, NULL, NULL);
+                    }
+                    arg = arg->siguiente;
+                }
+            }
+            
             IRSymbol *func_sym = new_func_symbol(node->method_call.nombre);
             IRSymbol *temp = new_temp_symbol();
-            
-            // Generar argumentos (simplificado)
-            if (node->method_call.args) {
-                gen_code(node->method_call.args, list);
-            }
             
             ir_emit(list, IR_CALL, func_sym, NULL, temp);
             return temp;
@@ -483,7 +489,11 @@ void ir_print(IRList *list) {
                 if (code->arg1) printf(" %s", code->arg1->name);
                 if (code->result) printf(", %s", code->result->name);
                 break;
-                
+            
+            case IR_CALL_PARAM:
+                if (code->arg1) printf(" %s", code->arg1->name);
+                break;
+
             default:
                 break;
         }
@@ -571,6 +581,10 @@ void ir_save_to_file(IRList *list, const char *filename) {
             case IR_CALL:
                 if (code->arg1) fprintf(file, " %s", code->arg1->name);
                 if (code->result) fprintf(file, ", %s", code->result->name);
+                break;
+
+            case IR_CALL_PARAM:
+                if (code->arg1) fprintf(file, " %s", code->arg1->name);
                 break;
                 
             default:
