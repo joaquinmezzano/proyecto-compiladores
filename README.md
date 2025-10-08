@@ -19,7 +19,7 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 | ~~`analizador-lexico-sintactico`~~ | 03/09/2025 | 15/09/2025 |
 | ~~`ts-ast`~~                       | 15/09/2025 | 24/09/2025 |
 | ~~`analizador-semantico`~~         | 15/09/2025 | 01/10/2025 |
-| `codigo-intermedio`                | 01/10/2025 | 08/10/2025 |
+| ~~`codigo-intermedio`~~            | 01/10/2025 | 08/10/2025 |
 | `codigo-objeto`                    | 08/10/2025 | 27/10/2025 |
 | `optimizador`                      | 27/10/2025 | 12/11/2025 |
 | `entrega-final`                    | -          | 15/11/2025 |
