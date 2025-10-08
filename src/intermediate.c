@@ -499,9 +499,6 @@ void ir_save_to_file(IRList *list, const char *filename) {
         return;
     }
     
-    fprintf(file, "# Código intermedio generado\n");
-    fprintf(file, "# Formato: código de tres direcciones\n\n");
-    
     for (int i = 0; i < list->size; i++) {
         IRCode *code = &list->codes[i];
         fprintf(file, "%s", ir_names[code->op]);
