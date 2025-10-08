@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "symtab.h"
 #include "semantics.h"
+#include "intermediate.h"
 
 /*
  * Declarar variables del lexer
@@ -343,15 +344,20 @@ int main(int argc, char **argv) {
         int semantic_result = semantic_analysis(ast);
         
         if (semantic_result == 0) {
-            printf("✅ COMPILACIÓN EXITOSA: Análisis sintáctico y semántico completados sin errores.\n\n");
+            printf("✅ ANÁLISIS SEMÁNTICO EXITOSO: Sin errores detectados.\n\n");
+            
+            // Generar código intermedio
+            int ir_result = generate_intermediate_code(ast);
+            
+            nodo_libre(ast);
+            free_symtab();
+            return ir_result;
         } else {
             printf("❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            nodo_libre(ast);
+            free_symtab();
+            return semantic_result;
         }
-
-        nodo_libre(ast);
-        free_symtab();
-        
-        return semantic_result;
     } else {
         printf("Análisis sintáctico fallido.\n");
         free_symtab();
