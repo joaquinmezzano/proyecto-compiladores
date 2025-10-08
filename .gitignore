@@ -8,6 +8,7 @@ sintaxis.output
 ast.dot
 *.dSYM/
 inter.s
+*.out
 
 # Misc files
 ast_tree.png
