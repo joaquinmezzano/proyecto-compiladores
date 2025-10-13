@@ -433,7 +433,7 @@ TypeInfo* analyze_declaration(Nodo *decl_node) {
 
 /*
  * Función para analizar nodos de llamadas a métodos
- */
+*/
 TypeInfo* analyze_method_call(Nodo *call_node) {
     if (!call_node || call_node->tipo != NODO_METHOD_CALL) return NULL;
     
@@ -456,44 +456,56 @@ TypeInfo* analyze_method_call(Nodo *call_node) {
 
     SymbolTable *func_scope = get_function_scope(call_node->method_call.nombre);
     if (func_scope) {
-        Nodo *arg = call_node->method_call.args;
-        int param_idx = 0;
         int param_count = 0;
         for (int i = 0; i < func_scope->num_symbols; i++) {
             Symbol *sym = &func_scope->symbols[i];
             if (sym->is_param) param_count++;
         }
         
+        int arg_count = 0;
+        for (Nodo *tmp = call_node->method_call.args; tmp; tmp = tmp->siguiente) {
+            arg_count++;
+        }
+        
+        if (arg_count != param_count) {
+            char error_msg[256];
+            snprintf(error_msg, sizeof(error_msg),
+                     "Cantidad de argumentos incorrecta en llamada a '%s': esperado %d, recibido %d",
+                     call_node->method_call.nombre, param_count, arg_count);
+            semantic_error(error_msg, yylineno);
+        }
+
+        Nodo *arg = call_node->method_call.args;
+        int param_idx = 0;
+
         for (int i = 0; i < func_scope->num_symbols; i++) {
             Symbol *param_sym = &func_scope->symbols[i];
             if (!param_sym->is_param) continue;
-            if (!arg) {
-                semantic_error("Cantidad de argumentos insuficiente en llamada a función", yylineno);
-                break;
-            }
+
+            if (!arg) break;  // ya controlaste la cantidad antes
+
             TypeInfo *arg_type = analyze_expression(arg);
             DataType param_type = get_type_from_string(param_sym->type);
+
             if (!types_compatible(param_type, arg_type->type)) {
                 char error_msg[256];
                 snprintf(error_msg, sizeof(error_msg),
-                        "Tipo de argumento %d incorrecto en llamada a '%s': esperado %s, recibido %s",
-                        param_idx + 1, call_node->method_call.nombre,
-                        type_to_string(param_type), type_to_string(arg_type->type));
+                         "Tipo de argumento %d incorrecto en llamada a '%s': esperado %s, recibido %s",
+                         param_idx + 1, call_node->method_call.nombre,
+                         type_to_string(param_type), type_to_string(arg_type->type));
                 semantic_error(error_msg, yylineno);
             }
+
             free_type_info(arg_type);
             arg = arg->siguiente;
             param_idx++;
-        }
-        if (arg) {
-            semantic_error("Demasiados argumentos en llamada a función", yylineno);
         }
     }
     
     return create_type_info(get_return_type(func_sym));
 }
 
-/*
+ /*
  * Función para analizar nodos de métodos
  */
 TypeInfo* analyze_method(Nodo *method_node) {
