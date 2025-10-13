@@ -615,9 +615,9 @@ int generate_intermediate_code(Nodo *ast) {
     IRList ir_list;
     ir_init(&ir_list);
     
-    printf("\n=======================================");
-    printf("\n| INICIANDO GENERACIÓN CÓDIGO INTERMEDIO |");
-    printf("\n=======================================\n");
+    printf("\n ---------------------------- ");
+    printf("\n| GENERANDO CÓDIGO INTERMEDIO |");
+    printf("\n ---------------------------- \n");
     
     // Generar código intermedio recorriendo el AST
     // Comenzar desde el primer hijo del nodo program
@@ -641,6 +641,6 @@ int generate_intermediate_code(Nodo *ast) {
     // Liberar memoria
     ir_free(&ir_list);
     
-    printf("✅ Generación de código intermedio completada exitosamente.\n\n");
+    printf("✓ Generación de código intermedio completado exitosamente.\n\n");
     return 0;
 }

@@ -28,10 +28,10 @@ int semantic_analysis(Nodo *ast_root) {
     verify_main_method();
     
     if (semantic_errors > 0) {
-        printf("\n❌ Análisis semántico FALLÓ con %d errores\n", semantic_errors);
+        printf("\nX Análisis semántico FALLÓ con %d errores\n", semantic_errors);
         return 1;
     } else {
-        printf("\n✅ Análisis semántico EXITOSO - sin errores\n");
+        printf("\n✓ Análisis semántico EXITOSO - sin errores\n");
         return 0;
     }
 }

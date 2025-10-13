@@ -9,6 +9,7 @@
 #include "symtab.h"
 #include "semantics.h"
 #include "intermediate.h"
+#include "object.h"
 
 /*
  * Declarar variables del lexer
@@ -343,17 +344,32 @@ int main(int argc, char **argv) {
         
         int semantic_result = semantic_analysis(ast);
         
-        if (semantic_result == 0) {
-            printf("✅ ANÁLISIS SEMÁNTICO EXITOSO: Sin errores detectados.\n\n");
-            
-            // Generar código intermedio
+        if (semantic_result == 0) {          
             int ir_result = generate_intermediate_code(ast);
             
-            nodo_libre(ast);
-            free_symtab();
-            return ir_result;
+            if (ir_result == 0) {
+                printf(" ------------------------- ");
+                printf("\n| GENERANDO CÓDIGO OBJETO |");
+                printf("\n ------------------------- \n");
+                
+                int obj_result = generate_object_code("inter.s", "output.s");
+                
+                if (obj_result == 0) {
+                    printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                } else {
+                    printf("X ERROR en la generación de código objeto.\n\n");
+                }
+                
+                nodo_libre(ast);
+                free_symtab();
+                return obj_result;
+            } else {
+                nodo_libre(ast);
+                free_symtab();
+                return ir_result;
+            }
         } else {
-            printf("❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
             nodo_libre(ast);
             free_symtab();
             return semantic_result;

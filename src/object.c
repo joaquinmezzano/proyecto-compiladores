@@ -372,7 +372,7 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
     
     fclose(output);
     
-    printf("Código objeto generado en: %s\n", output_filename);
+    printf("Código objeto guardado en: %s\n", output_filename);
     
     object_free(&obj);
     var_table_free(&vars);

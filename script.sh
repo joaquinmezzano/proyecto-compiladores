@@ -9,10 +9,12 @@ AST_SOURCE="src/ast.c"
 SYMTAB_SOURCE="src/symtab.c"
 SEMANTICS_SOURCE="src/semantics.c"
 INTERMEDIATE_SOURCE="src/intermediate.c"
+OBJECT_SOURCE="src/object.c"
 AST_HEADER="src/ast.h"
 SYMTAB_HEADER="src/symtab.h"
 SEMANTICS_HEADER="src/semantics.h"
 INTERMEDIATE_HEADER="src/intermediate.h"
+OBJECT_HEADER="src/object.h"
 OUTPUT="c-tds"
 
 # Función de ayuda si se llama con --help
@@ -29,6 +31,8 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  c-tds           - Ejecutable del compilador"
     echo "  ast_tree.png    - Visualización del AST (requiere Graphviz)"
     echo "  sintaxis.output - Reporte detallado del parser"
+    echo "  inter.s         - Código intermedio"
+    echo "  output.s        - Código ensamblador"
     echo ""
     exit 0
 fi
@@ -49,7 +53,7 @@ fi
 
 # Verificar que todos los archivos fuente existen
 echo "==> Verificando archivos fuente..."
-for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE"; do
+for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE" "$OBJECT_SOURCE"; do
     if [ ! -f "$archivo" ]; then
         echo "Error: el archivo fuente '$archivo' no existe."
         exit 1
@@ -57,7 +61,7 @@ for archivo in "$LEXER" "$PARSER" "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOU
 done
 
 # Verificar que todos los archivos header existen
-for archivo in "$AST_HEADER" "$SYMTAB_HEADER" "$SEMANTICS_HEADER" "$INTERMEDIATE_HEADER"; do
+for archivo in "$AST_HEADER" "$SYMTAB_HEADER" "$SEMANTICS_HEADER" "$INTERMEDIATE_HEADER" "$OBJECT_HEADER"; do
     if [ ! -f "$archivo" ]; then
         echo "Error: el archivo header '$archivo' no existe."
         exit 1
@@ -66,7 +70,7 @@ done
 
 # Limpiar archivos generados anteriores
 echo "==> Limpiando archivos generados anteriores..."
-rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png inter.s
+rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png inter.s output.s
 
 # Generar lexer
 echo "==> Generando lexer con Flex..."
@@ -83,7 +87,7 @@ gcc -Wall -Wextra -std=c99 -D_POSIX_C_SOURCE=200809L -g \
     -Wno-sign-compare -Wno-unused-function -Wno-unused-parameter \
     -o "$OUTPUT" \
     sintaxis.tab.c lex.yy.c \
-    "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE"
+    "$AST_SOURCE" "$SYMTAB_SOURCE" "$SEMANTICS_SOURCE" "$INTERMEDIATE_SOURCE" "$OBJECT_SOURCE"
 
 echo "==> Compilación exitosa. Ejecutable: $OUTPUT"
 
@@ -94,7 +98,9 @@ echo "--------------------------------------------------"
 echo ""
 
 if ./"$OUTPUT" < "$FILE"; then
-    echo "----------------------------------------------"
+    echo " --------------------------- "
+    echo "| Reporte final del programa |"
+    echo " --------------------------- "
     echo ""
     echo "✓ Análisis completado exitosamente."
     
@@ -102,6 +108,7 @@ if ./"$OUTPUT" < "$FILE"; then
     [ -f "ast_tree.png" ] && echo "✓ AST generado: ast_tree.png"
     [ -f "sintaxis.output" ] && echo "✓ Reporte de parser: sintaxis.output"
     [ -f "inter.s" ] && echo "✓ Código intermedio generado: inter.s"
+    [ -f "output.s" ] && echo "✓ Código objeto generado: output.s"
     
     # Opcional: mostrar estadísticas del archivo analizado
     echo "✓ Archivo analizado: $FILE ($(wc -l < "$FILE" | xargs) líneas)"

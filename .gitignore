@@ -7,7 +7,7 @@ sintaxis.tab.h
 sintaxis.output
 ast.dot
 *.dSYM/
-inter.s
+*.s
 *.out
 
 # Misc files
