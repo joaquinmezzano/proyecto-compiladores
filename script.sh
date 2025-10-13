@@ -104,7 +104,7 @@ if ./"$OUTPUT" < "$FILE"; then
     [ -f "inter.s" ] && echo "✓ Código intermedio generado: inter.s"
     
     # Opcional: mostrar estadísticas del archivo analizado
-    echo "✓ Archivo analizado: $FILE ($(wc -l < "$FILE") líneas)"
+    echo "✓ Archivo analizado: $FILE ($(wc -l < "$FILE" | xargs) líneas)"
     echo ""
     
 else
