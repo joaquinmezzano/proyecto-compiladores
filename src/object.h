@@ -30,7 +30,7 @@ void object_emit(ObjectCode *obj, const char *line);
 int var_table_add(VarTable *table, const char *name);
 int var_table_get_offset(VarTable *table, const char *name);
 int is_temp_var(const char *name);
-int is_const(const char *name);
+int is_constant(const char *name);
 int is_label(const char *name);
 const char* get_register_for_temp(const char *temp_name);
 

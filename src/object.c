@@ -325,6 +325,54 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             break;
         }
         
+        case IR_CALL: {
+            const char *func_name = code->arg1->name;
+            snprintf(line, sizeof(line), "\tcall\t%s", func_name);
+            object_emit(obj, line);
+            // Store result if needed
+            if (code->result) {
+                const char *result_reg = get_register_for_temp(code->result->name);
+                if (strcmp(result_reg, "%rax") != 0) {
+                    snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                    object_emit(obj, line);
+                }
+            }
+            break;
+        }
+        
+        case IR_CALL_PARAM: {
+            const char *param_name = code->arg1->name;
+            if (is_constant(param_name)) {
+                snprintf(line, sizeof(line), "\tmovq\t$%s, %%rdi", param_name);
+            } else if (is_temp_var(param_name)) {
+                const char *param_reg = get_register_for_temp(param_name);
+                if (strcmp(param_reg, "%rdi") != 0) {
+                    snprintf(line, sizeof(line), "\tmovq\t%s, %%rdi", param_reg);
+                } else {
+                    // Already in the right register
+                    break;
+                }
+            } else {
+                // Variable
+                int offset = var_table_get_offset(vars, param_name);
+                if (offset != 0) {
+                    snprintf(line, sizeof(line), "\tmovq\t%d(%%rbp), %%rdi", offset);
+                } else {
+                    snprintf(line, sizeof(line), "\tmovq\t%s, %%rdi", param_name);
+                }
+            }
+            object_emit(obj, line);
+            break;
+        }
+        
+        case IR_PARAM: {
+            // Parameters are handled by function prologue, just comment
+            const char *param_name = code->arg1->name;
+            snprintf(line, sizeof(line), "\t# Parameter: %s", param_name);
+            object_emit(obj, line);
+            break;
+        }
+        
         default:
             snprintf(line, sizeof(line), "\t# Instrucción no implementada: %d", code->op);
             object_emit(obj, line);
@@ -346,13 +394,194 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
     object_emit(&obj, ".text");
     
     char line[512];
+    char current_function[256] = "";
+    int in_function = 0;
+    
     while (fgets(line, sizeof(line), ir_file)) {
-        if (strstr(line, "METHOD main:")) {
-            IRCode code = {IR_METHOD, NULL, NULL, NULL};
-            IRSymbol result = {"main", IR_SYM_FUNC, {0}};
-            code.result = &result;
-            translate_ir_instruction(&obj, &code, &vars);
+        // Remove newline and whitespace
+        line[strcspn(line, "\n\r")] = 0;
+        
+        // Skip empty lines
+        if (strlen(line) == 0) continue;
+        
+        // Parse different IR instructions
+        if (strncmp(line, "METHOD ", 7) == 0) {
+            char func_name[256];
+            if (sscanf(line, "METHOD %s", func_name) == 1) {
+                // Remove trailing colon if present
+                char *colon = strchr(func_name, ':');
+                if (colon) *colon = '\0';
+                strcpy(current_function, func_name);
+                translate_prologue(&obj, func_name, &vars);
+                in_function = 1;
+            }
         }
+        else if (strncmp(line, "EXTERN ", 7) == 0) {
+            // Skip extern declarations - they're handled by linker
+            continue;
+        }
+        else if (strncmp(line, "LOAD ", 5) == 0) {
+            char src[256], dst[256];
+            if (sscanf(line, "LOAD %[^,], %s", src, dst) == 2) {
+                IRSymbol src_sym = {strdup(src), IR_SYM_VAR, {0}};
+                IRSymbol dst_sym = {strdup(dst), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_LOAD, &src_sym, NULL, &dst_sym};
+                
+                // Add variables to table if they're not temp vars
+                if (!is_temp_var(src) && !is_constant(src)) {
+                    var_table_add(&vars, src);
+                }
+                if (!is_temp_var(dst)) {
+                    var_table_add(&vars, dst);
+                }
+                
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(src_sym.name);
+                free(dst_sym.name);
+            }
+        }
+        else if (strncmp(line, "STORE ", 6) == 0) {
+            char src[256], dst[256];
+            if (sscanf(line, "STORE %[^,], %s", src, dst) == 2) {
+                IRSymbol src_sym = {strdup(src), IR_SYM_TEMP, {0}};
+                IRSymbol dst_sym = {strdup(dst), IR_SYM_VAR, {0}};
+                IRCode code = {IR_STORE, &src_sym, NULL, &dst_sym};
+                
+                // Add variables to table
+                if (!is_temp_var(src)) {
+                    var_table_add(&vars, src);
+                }
+                if (!is_temp_var(dst)) {
+                    var_table_add(&vars, dst);
+                }
+                
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(src_sym.name);
+                free(dst_sym.name);
+            }
+        }
+        else if (strncmp(line, "ADD ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "ADD %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_ADD, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "EQ ", 3) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "EQ %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_EQ, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "IF_FALSE ", 9) == 0) {
+            char cond[256], label[256];
+            if (sscanf(line, "IF_FALSE %[^,], %s", cond, label) == 2) {
+                IRSymbol cond_sym = {strdup(cond), IR_SYM_TEMP, {0}};
+                IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
+                IRCode code = {IR_IF_FALSE, &cond_sym, NULL, &label_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(cond_sym.name);
+                free(label_sym.name);
+            }
+        }
+        else if (strncmp(line, "GOTO ", 5) == 0) {
+            char label[256];
+            if (sscanf(line, "GOTO %s", label) == 1) {
+                IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
+                IRCode code = {IR_GOTO, NULL, NULL, &label_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(label_sym.name);
+            }
+        }
+        else if (strncmp(line, "LABEL ", 6) == 0) {
+            char label[256];
+            if (sscanf(line, "LABEL %s", label) == 1) {
+                // Remove trailing colon if present to avoid double colons
+                char *colon = strchr(label, ':');
+                if (colon) *colon = '\0';
+                IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
+                IRCode code = {IR_LABEL, NULL, NULL, &label_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(label_sym.name);
+            }
+        }
+        else if (strncmp(line, "RETURN ", 7) == 0) {
+            char value[256];
+            if (sscanf(line, "RETURN %s", value) == 1) {
+                IRSymbol value_sym = {strdup(value), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_RETURN, &value_sym, NULL, NULL};
+                translate_ir_instruction(&obj, &code, &vars);
+                free(value_sym.name);
+            } else {
+                // RETURN without value
+                IRCode code = {IR_RETURN, NULL, NULL, NULL};
+                translate_ir_instruction(&obj, &code, &vars);
+            }
+            // Note: epilogue is handled by translate_ir_instruction for IR_RETURN
+        }
+        else if (strncmp(line, "CALL ", 5) == 0) {
+            char func[256], result[256];
+            if (sscanf(line, "CALL %[^,], %s", func, result) == 2) {
+                IRSymbol func_sym = {strdup(func), IR_SYM_FUNC, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_CALL, &func_sym, NULL, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                free(func_sym.name);
+                free(result_sym.name);
+            } else {
+                // CALL without result
+                char func[256];
+                if (sscanf(line, "CALL %s", func) == 1) {
+                    IRSymbol func_sym = {strdup(func), IR_SYM_FUNC, {0}};
+                    IRCode code = {IR_CALL, &func_sym, NULL, NULL};
+                    translate_ir_instruction(&obj, &code, &vars);
+                    free(func_sym.name);
+                }
+            }
+        }
+        else if (strncmp(line, "LOAD_PARAM ", 11) == 0) {
+            char param[256];
+            if (sscanf(line, "LOAD_PARAM %s", param) == 1) {
+                IRSymbol param_sym = {strdup(param), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_CALL_PARAM, &param_sym, NULL, NULL};
+                translate_ir_instruction(&obj, &code, &vars);
+                free(param_sym.name);
+            }
+        }
+        else if (strncmp(line, "PARAM ", 6) == 0) {
+            char param[256];
+            if (sscanf(line, "PARAM %s", param) == 1) {
+                IRSymbol param_sym = {strdup(param), IR_SYM_VAR, {0}};
+                IRCode code = {IR_PARAM, &param_sym, NULL, NULL};
+                translate_ir_instruction(&obj, &code, &vars);
+                free(param_sym.name);
+            }
+        }
+    }
+    
+    // If we ended in a function without return, add epilogue
+    if (in_function) {
+        translate_epilogue(&obj);
     }
     
     object_emit(&obj, ".section\t.note.GNU-stack,\"\",@progbits");
