@@ -329,7 +329,7 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *func_name = code->arg1->name;
             snprintf(line, sizeof(line), "\tcall\t%s", func_name);
             object_emit(obj, line);
-            // Store result if needed
+
             if (code->result) {
                 const char *result_reg = get_register_for_temp(code->result->name);
                 if (strcmp(result_reg, "%rax") != 0) {
@@ -349,11 +349,9 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
                 if (strcmp(param_reg, "%rdi") != 0) {
                     snprintf(line, sizeof(line), "\tmovq\t%s, %%rdi", param_reg);
                 } else {
-                    // Already in the right register
                     break;
                 }
             } else {
-                // Variable
                 int offset = var_table_get_offset(vars, param_name);
                 if (offset != 0) {
                     snprintf(line, sizeof(line), "\tmovq\t%d(%%rbp), %%rdi", offset);
@@ -366,7 +364,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
         }
         
         case IR_PARAM: {
-            // Parameters are handled by function prologue, just comment
             const char *param_name = code->arg1->name;
             snprintf(line, sizeof(line), "\t# Parameter: %s", param_name);
             object_emit(obj, line);
@@ -398,17 +395,13 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
     int in_function = 0;
     
     while (fgets(line, sizeof(line), ir_file)) {
-        // Remove newline and whitespace
         line[strcspn(line, "\n\r")] = 0;
         
-        // Skip empty lines
         if (strlen(line) == 0) continue;
         
-        // Parse different IR instructions
         if (strncmp(line, "METHOD ", 7) == 0) {
             char func_name[256];
             if (sscanf(line, "METHOD %s", func_name) == 1) {
-                // Remove trailing colon if present
                 char *colon = strchr(func_name, ':');
                 if (colon) *colon = '\0';
                 strcpy(current_function, func_name);
@@ -417,7 +410,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
             }
         }
         else if (strncmp(line, "EXTERN ", 7) == 0) {
-            // Skip extern declarations - they're handled by linker
             continue;
         }
         else if (strncmp(line, "LOAD ", 5) == 0) {
@@ -427,7 +419,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 IRSymbol dst_sym = {strdup(dst), IR_SYM_TEMP, {0}};
                 IRCode code = {IR_LOAD, &src_sym, NULL, &dst_sym};
                 
-                // Add variables to table if they're not temp vars
                 if (!is_temp_var(src) && !is_constant(src)) {
                     var_table_add(&vars, src);
                 }
@@ -448,7 +439,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 IRSymbol dst_sym = {strdup(dst), IR_SYM_VAR, {0}};
                 IRCode code = {IR_STORE, &src_sym, NULL, &dst_sym};
                 
-                // Add variables to table
                 if (!is_temp_var(src)) {
                     var_table_add(&vars, src);
                 }
@@ -515,7 +505,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
         else if (strncmp(line, "LABEL ", 6) == 0) {
             char label[256];
             if (sscanf(line, "LABEL %s", label) == 1) {
-                // Remove trailing colon if present to avoid double colons
                 char *colon = strchr(label, ':');
                 if (colon) *colon = '\0';
                 IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
@@ -533,11 +522,9 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 translate_ir_instruction(&obj, &code, &vars);
                 free(value_sym.name);
             } else {
-                // RETURN without value
                 IRCode code = {IR_RETURN, NULL, NULL, NULL};
                 translate_ir_instruction(&obj, &code, &vars);
             }
-            // Note: epilogue is handled by translate_ir_instruction for IR_RETURN
         }
         else if (strncmp(line, "CALL ", 5) == 0) {
             char func[256], result[256];
@@ -549,7 +536,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 free(func_sym.name);
                 free(result_sym.name);
             } else {
-                // CALL without result
                 char func[256];
                 if (sscanf(line, "CALL %s", func) == 1) {
                     IRSymbol func_sym = {strdup(func), IR_SYM_FUNC, {0}};
@@ -579,7 +565,6 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
         }
     }
     
-    // If we ended in a function without return, add epilogue
     if (in_function) {
         translate_epilogue(&obj);
     }
