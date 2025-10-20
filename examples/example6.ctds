@@ -11,7 +11,7 @@ program {
     }
 
     void main() {
-        integer res = suma4(x, y, z, w);  // 4 args < 6 → todos en %rdi/%rsi/%rdx/%rcx
+        integer res = suma4(x, y, z, w);
         return ;
     }
 }

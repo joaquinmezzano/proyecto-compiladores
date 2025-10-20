@@ -200,7 +200,6 @@ param_list
           } else {
               insert_symbol($4, "unknown", 1);
           }
-          // PROBLEMA AQUÍ: necesitas encontrar el último nodo
           Nodo *last = $1;
           while (last && last->siguiente) {
               last = last->siguiente;
