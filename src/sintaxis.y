@@ -200,8 +200,16 @@ param_list
           } else {
               insert_symbol($4, "unknown", 1);
           }
+          // PROBLEMA AQUÍ: necesitas encontrar el último nodo
+          Nodo *last = $1;
+          while (last && last->siguiente) {
+              last = last->siguiente;
+          }
+          Nodo *new_param = nodo_ID($4);
+          if (last) {
+              last->siguiente = new_param;
+          }
           $$ = $1;
-          if ($1) $1->siguiente = nodo_ID($4);
       }
     ;
 
@@ -263,8 +271,25 @@ arg_list_opt
     ;
 
 arg_list
-    : expr               { $$ = $1; }
-    | arg_list COMA expr { $$ = $1; if ($1) $1->siguiente = $3; }
+    : expr               
+      { 
+          $$ = $1; 
+      }
+    | arg_list COMA expr 
+      { 
+          if ($1) {
+              // Encontrar el último nodo de la lista
+              Nodo *last = $1;
+              while (last->siguiente) {
+                  last = last->siguiente;
+              }
+              // Enlazar el nuevo nodo al final
+              last->siguiente = $3;
+              $$ = $1;
+          } else {
+              $$ = $3;
+          }
+      }
     ;
 
 expr

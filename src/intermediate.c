@@ -615,9 +615,9 @@ int generate_intermediate_code(Nodo *ast) {
     IRList ir_list;
     ir_init(&ir_list);
     
-    printf("\n ---------------------------- ");
-    printf("\n| GENERANDO CÓDIGO INTERMEDIO |");
-    printf("\n ---------------------------- \n");
+    printf("\n==========================================");
+    printf("\n| INICIANDO GENERACIÓN DE CÓDIGO INTERMEDIO |");
+    printf("\n==========================================\n");
     
     // Generar código intermedio recorriendo el AST
     // Comenzar desde el primer hijo del nodo program
