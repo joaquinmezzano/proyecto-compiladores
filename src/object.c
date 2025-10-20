@@ -105,7 +105,7 @@ int is_label(const char *name) {
 
 const char* get_register_for_temp(const char *temp_name) {
     static const char* registers[] = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9"};
-    static char temp_to_reg[256];
+    static int temp_to_reg[256];
     static int initialized = 0;
     
     if (!initialized) {
