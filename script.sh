@@ -31,7 +31,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  c-tds           - Ejecutable del compilador"
     echo "  ast_tree.png    - Visualización del AST (requiere Graphviz)"
     echo "  sintaxis.output - Reporte detallado del parser"
-    echo "  inter.s         - Código intermedio"
+    echo "  inter.ir        - Código intermedio"
     echo "  output.s        - Código ensamblador"
     echo ""
     exit 0
@@ -70,7 +70,7 @@ done
 
 # Limpiar archivos generados anteriores
 echo "==> Limpiando archivos generados anteriores..."
-rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png inter.s output.s
+rm -f lex.yy.c sintaxis.tab.c sintaxis.tab.h sintaxis.output "$OUTPUT" ast.dot ast_tree.png inter.ir output.s
 
 # Generar lexer
 echo "==> Generando lexer con Flex..."
@@ -107,7 +107,7 @@ if ./"$OUTPUT" < "$FILE"; then
     # Mostrar archivos generados si existen
     [ -f "ast_tree.png" ] && echo "✓ AST generado: ast_tree.png"
     [ -f "sintaxis.output" ] && echo "✓ Reporte de parser: sintaxis.output"
-    [ -f "inter.s" ] && echo "✓ Código intermedio generado: inter.s"
+    [ -f "inter.ir" ] && echo "✓ Código intermedio generado: inter.ir"
     [ -f "output.s" ] && echo "✓ Código objeto generado: output.s"
     
     # Opcional: mostrar estadísticas del archivo analizado

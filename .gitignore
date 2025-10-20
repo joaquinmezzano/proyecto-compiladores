@@ -9,6 +9,7 @@ ast.dot
 *.dSYM/
 *.s
 *.out
+*.ir
 
 # Misc files
 ast_tree.png

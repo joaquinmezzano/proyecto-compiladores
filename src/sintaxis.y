@@ -376,7 +376,7 @@ int main(int argc, char **argv) {
                 printf("\n| GENERANDO CÓDIGO OBJETO |");
                 printf("\n ------------------------- \n");
                 
-                int obj_result = generate_object_code("inter.s", "output.s");
+                int obj_result = generate_object_code("inter.ir", "output.s");
                 
                 if (obj_result == 0) {
                     printf("✓ Generación de código objeto completado exitosamente.\n\n");
