@@ -247,6 +247,31 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             break;
         }
         
+        case IR_MOD: {
+            object_emit(obj, "\tmovq\t%rax, %r10");
+            object_emit(obj, "\tmovq\t%rdx, %r11");
+            
+            const char *dividend_reg = get_register_for_temp(code->arg1->name);
+            const char *divisor_reg = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            snprintf(line, sizeof(line), "\tmovq\t%s, %%rax", dividend_reg);
+            object_emit(obj, line);
+            object_emit(obj, "\tcqto");
+            snprintf(line, sizeof(line), "\tidivq\t%s", divisor_reg);
+            object_emit(obj, line);
+            
+            // Para MOD, el resultado está en RDX
+            if (strcmp(result_reg, "%rdx") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rdx, %s", result_reg);
+                object_emit(obj, line);
+            }
+            
+            object_emit(obj, "\tmovq\t%r11, %rdx");
+            object_emit(obj, "\tmovq\t%r10, %rax");
+            break;
+        }
+        
         case IR_LABEL: {
             snprintf(line, sizeof(line), "%s:", code->result->name);
             object_emit(obj, line);
@@ -306,6 +331,24 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             break;
         }
         
+        case IR_NEQ: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *reg2 = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            snprintf(line, sizeof(line), "\tcmpq\t%s, %s", reg2, reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetne\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tmovzbl\t%%al, %%eax");
+            object_emit(obj, line);
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
         case IR_LT: {
             const char *reg1 = get_register_for_temp(code->arg1->name);
             const char *reg2 = get_register_for_temp(code->arg2->name);
@@ -339,6 +382,129 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
                 snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
                 object_emit(obj, line);
             }
+            break;
+        }
+        
+        case IR_GT: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *reg2 = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            snprintf(line, sizeof(line), "\tcmpq\t%s, %s", reg2, reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetg\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tmovzbl\t%%al, %%eax");
+            object_emit(obj, line);
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
+        case IR_GE: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *reg2 = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            snprintf(line, sizeof(line), "\tcmpq\t%s, %s", reg2, reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetge\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tmovzbl\t%%al, %%eax");
+            object_emit(obj, line);
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
+        case IR_AND: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *reg2 = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            // AND lógico: result = (arg1 != 0) && (arg2 != 0)
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetne\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg2);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetne\t%%dl");
+            object_emit(obj, line);
+            object_emit(obj, "\tandb\t%dl, %al");
+            object_emit(obj, "\tmovzbl\t%al, %eax");
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
+        case IR_OR: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *reg2 = get_register_for_temp(code->arg2->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            // OR lógico: result = (arg1 != 0) || (arg2 != 0)
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetne\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg2);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsetne\t%%dl");
+            object_emit(obj, line);
+            object_emit(obj, "\torb\t%dl, %al");
+            object_emit(obj, "\tmovzbl\t%al, %eax");
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
+        case IR_NOT: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            // NOT lógico: result = !(arg1 != 0)
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tsete\t%%al");
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tmovzbl\t%%al, %%eax");
+            object_emit(obj, line);
+            if (strcmp(result_reg, "%rax") != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%%rax, %s", result_reg);
+                object_emit(obj, line);
+            }
+            break;
+        }
+        
+        case IR_UMINUS: {
+            const char *reg1 = get_register_for_temp(code->arg1->name);
+            const char *result_reg = get_register_for_temp(code->result->name);
+            
+            // Menos unario: result = -arg1
+            if (strcmp(reg1, result_reg) != 0) {
+                snprintf(line, sizeof(line), "\tmovq\t%s, %s", reg1, result_reg);
+                object_emit(obj, line);
+            }
+            snprintf(line, sizeof(line), "\tnegq\t%s", result_reg);
+            object_emit(obj, line);
+            break;
+        }
+        
+        case IR_IF_TRUE: {
+            const char *cond_reg = get_register_for_temp(code->arg1->name);
+            snprintf(line, sizeof(line), "\tcmpq\t$0, %s", cond_reg);
+            object_emit(obj, line);
+            snprintf(line, sizeof(line), "\tjne\t%s", code->result->name);
+            object_emit(obj, line);
             break;
         }
         
@@ -483,6 +649,114 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 free(result_sym.name);
             }
         }
+        else if (strncmp(line, "SUB ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "SUB %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_SUB, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "MUL ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "MUL %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_MUL, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "DIV ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "DIV %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_DIV, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "MOD ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "MOD %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_MOD, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "AND ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "AND %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_AND, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "OR ", 3) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "OR %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_OR, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "NOT ", 4) == 0) {
+            char arg1[256], result[256];
+            if (sscanf(line, "NOT %[^,], %s", arg1, result) == 2) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_NOT, &arg1_sym, NULL, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "UMINUS ", 7) == 0) {
+            char arg1[256], result[256];
+            if (sscanf(line, "UMINUS %[^,], %s", arg1, result) == 2) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_UMINUS, &arg1_sym, NULL, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(result_sym.name);
+            }
+        }
         else if (strncmp(line, "EQ ", 3) == 0) {
             char arg1[256], arg2[256], result[256];
             if (sscanf(line, "EQ %[^,], %[^,], %s", arg1, arg2, result) == 3) {
@@ -511,12 +785,80 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
                 free(result_sym.name);
             }
         }
+        else if (strncmp(line, "NEQ ", 4) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "NEQ %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_NEQ, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "LT ", 3) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "LT %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_LT, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "GT ", 3) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "GT %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_GT, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
+        else if (strncmp(line, "GE ", 3) == 0) {
+            char arg1[256], arg2[256], result[256];
+            if (sscanf(line, "GE %[^,], %[^,], %s", arg1, arg2, result) == 3) {
+                IRSymbol arg1_sym = {strdup(arg1), IR_SYM_TEMP, {0}};
+                IRSymbol arg2_sym = {strdup(arg2), IR_SYM_TEMP, {0}};
+                IRSymbol result_sym = {strdup(result), IR_SYM_TEMP, {0}};
+                IRCode code = {IR_GE, &arg1_sym, &arg2_sym, &result_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(arg1_sym.name);
+                free(arg2_sym.name);
+                free(result_sym.name);
+            }
+        }
         else if (strncmp(line, "IF_FALSE ", 9) == 0) {
             char cond[256], label[256];
             if (sscanf(line, "IF_FALSE %[^,], %s", cond, label) == 2) {
                 IRSymbol cond_sym = {strdup(cond), IR_SYM_TEMP, {0}};
                 IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
                 IRCode code = {IR_IF_FALSE, &cond_sym, NULL, &label_sym};
+                translate_ir_instruction(&obj, &code, &vars);
+                
+                free(cond_sym.name);
+                free(label_sym.name);
+            }
+        }
+        else if (strncmp(line, "IF_TRUE ", 8) == 0) {
+            char cond[256], label[256];
+            if (sscanf(line, "IF_TRUE %[^,], %s", cond, label) == 2) {
+                IRSymbol cond_sym = {strdup(cond), IR_SYM_TEMP, {0}};
+                IRSymbol label_sym = {strdup(label), IR_SYM_LABEL, {0}};
+                IRCode code = {IR_IF_TRUE, &cond_sym, NULL, &label_sym};
                 translate_ir_instruction(&obj, &code, &vars);
                 
                 free(cond_sym.name);
