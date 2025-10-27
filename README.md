@@ -20,7 +20,7 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 | ~~`ts-ast`~~                       | 15/09/2025 | 24/09/2025 |
 | ~~`analizador-semantico`~~         | 15/09/2025 | 01/10/2025 |
 | ~~`codigo-intermedio`~~            | 01/10/2025 | 08/10/2025 |
-| `codigo-objeto`                    | 08/10/2025 | 27/10/2025 |
+| ~~`codigo-objeto`~~                | 08/10/2025 | 27/10/2025 |
 | `optimizador`                      | 27/10/2025 | 12/11/2025 |
 | `entrega-final`                    | -          | 15/11/2025 |
 
@@ -34,21 +34,23 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 ## Uso del proyecto
 
 ### Compilación
+
     make [target]
 
-| Target        | Descripción                                     | Ejemplo                                |
-| ------------- | ---------------------------------------------- | -------------------------------------- |
-| `all`         | Compila el ejecutable (opción por defecto)    | `make` o `make all`                   |
-| `clean`       | Limpia archivos generados                      | `make clean`                          |
-| `rebuild`     | Limpia y recompila desde cero                  | `make rebuild`                        |
-| `help`        | Muestra información y uso del programa         | `make help`                           |
+| Target    | Descripción                                | Ejemplo             |
+| --------- | ------------------------------------------ | ------------------- |
+| `all`     | Compila el ejecutable (opción por defecto) | `make` o `make all` |
+| `clean`   | Limpia archivos generados                  | `make clean`        |
+| `rebuild` | Limpia y recompila desde cero              | `make rebuild`      |
+| `help`    | Muestra información y uso del programa     | `make help`         |
 
 ### Ejecución
+
     make run FILE=<archivo.ctds>
 
-| Comando                        | Descripción                                | Ejemplo                                    |
-| ------------------------------ | ------------------------------------------ | ------------------------------------------ |
-| `make run FILE=<archivo>`      | Ejecuta el compilador con un archivo      | `make run FILE=examples/example1.ctds`    |
-| `make test-all`                | Ejecuta todos los ejemplos disponibles    | `make test-all`                           |
-| `make test-good`               | Ejecuta solo ejemplos válidos             | `make test-good`                          |
-| `make test-errors`             | Ejecuta ejemplos con errores esperados    | `make test-errors`                        |
+| Comando                   | Descripción                            | Ejemplo                                |
+| ------------------------- | -------------------------------------- | -------------------------------------- |
+| `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
+| `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
+| `make test-good`          | Ejecuta solo ejemplos válidos          | `make test-good`                       |
+| `make test-errors`        | Ejecuta ejemplos con errores esperados | `make test-errors`                     |
