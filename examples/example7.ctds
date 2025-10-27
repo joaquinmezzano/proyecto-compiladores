@@ -1,0 +1,20 @@
+program {
+    integer x = 1;
+    integer y = 2;
+    integer z = 3;
+    integer w = 4;
+    integer a = 5;
+    integer b = 6;
+    integer c = 7;
+
+    integer suma7(integer p1, integer p2, integer p3, integer p4, integer p5, integer p6, integer p7) {
+        integer temp1 = p1 + p2 + p3;
+        integer temp2 = p4 + p5 + p6;
+        return temp1 + temp2 + p7;
+    }
+
+    void main() {
+        integer res = suma7(x, y, z, w, a, b, c);  // 7 args → primeros 6 en registros, último en stack
+        return ;
+    }
+}

@@ -32,8 +32,23 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 - **Tomás Rodeghiero**
 
 ## Uso del proyecto
-    ./script.sh [opcion] <archivo.ctds>
 
-| Opción        | Descripción                            | Ejemplo           |
-| ------------- | -------------------------------------- | ----------------- |
-| `--h, --help` | Muestra información y uso del programa | `./script.sh --h` |
+### Compilación
+    make [target]
+
+| Target        | Descripción                                     | Ejemplo                                |
+| ------------- | ---------------------------------------------- | -------------------------------------- |
+| `all`         | Compila el ejecutable (opción por defecto)    | `make` o `make all`                   |
+| `clean`       | Limpia archivos generados                      | `make clean`                          |
+| `rebuild`     | Limpia y recompila desde cero                  | `make rebuild`                        |
+| `help`        | Muestra información y uso del programa         | `make help`                           |
+
+### Ejecución
+    make run FILE=<archivo.ctds>
+
+| Comando                        | Descripción                                | Ejemplo                                    |
+| ------------------------------ | ------------------------------------------ | ------------------------------------------ |
+| `make run FILE=<archivo>`      | Ejecuta el compilador con un archivo      | `make run FILE=examples/example1.ctds`    |
+| `make test-all`                | Ejecuta todos los ejemplos disponibles    | `make test-all`                           |
+| `make test-good`               | Ejecuta solo ejemplos válidos             | `make test-good`                          |
+| `make test-errors`             | Ejecuta ejemplos con errores esperados    | `make test-errors`                        |

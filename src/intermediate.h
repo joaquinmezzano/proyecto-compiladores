@@ -30,7 +30,8 @@ typedef enum {
     IR_CALL,
     IR_METHOD,
     IR_EXTERN,
-    IR_PARAM
+    IR_PARAM,
+    IR_CALL_PARAM
 } IRInstr;
 
 typedef struct IRSymbol {

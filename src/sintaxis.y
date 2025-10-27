@@ -9,6 +9,7 @@
 #include "symtab.h"
 #include "semantics.h"
 #include "intermediate.h"
+#include "object.h"
 
 /*
  * Declarar variables del lexer
@@ -199,8 +200,15 @@ param_list
           } else {
               insert_symbol($4, "unknown", 1);
           }
+          Nodo *last = $1;
+          while (last && last->siguiente) {
+              last = last->siguiente;
+          }
+          Nodo *new_param = nodo_ID($4);
+          if (last) {
+              last->siguiente = new_param;
+          }
           $$ = $1;
-          if ($1) $1->siguiente = nodo_ID($4);
       }
     ;
 
@@ -262,8 +270,25 @@ arg_list_opt
     ;
 
 arg_list
-    : expr               { $$ = $1; }
-    | arg_list COMA expr { $$ = $1; if ($1) $1->siguiente = $3; }
+    : expr               
+      { 
+          $$ = $1; 
+      }
+    | arg_list COMA expr 
+      { 
+          if ($1) {
+              // Encontrar el último nodo de la lista
+              Nodo *last = $1;
+              while (last->siguiente) {
+                  last = last->siguiente;
+              }
+              // Enlazar el nuevo nodo al final
+              last->siguiente = $3;
+              $$ = $1;
+          } else {
+              $$ = $3;
+          }
+      }
     ;
 
 expr
@@ -343,17 +368,32 @@ int main(int argc, char **argv) {
         
         int semantic_result = semantic_analysis(ast);
         
-        if (semantic_result == 0) {
-            printf("✅ ANÁLISIS SEMÁNTICO EXITOSO: Sin errores detectados.\n\n");
-            
-            // Generar código intermedio
+        if (semantic_result == 0) {          
             int ir_result = generate_intermediate_code(ast);
             
-            nodo_libre(ast);
-            free_symtab();
-            return ir_result;
+            if (ir_result == 0) {
+                printf(" ------------------------- ");
+                printf("\n| GENERANDO CÓDIGO OBJETO |");
+                printf("\n ------------------------- \n");
+                
+                int obj_result = generate_object_code("inter.ir", "output.s");
+                
+                if (obj_result == 0) {
+                    printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                } else {
+                    printf("X ERROR en la generación de código objeto.\n\n");
+                }
+                
+                nodo_libre(ast);
+                free_symtab();
+                return obj_result;
+            } else {
+                nodo_libre(ast);
+                free_symtab();
+                return ir_result;
+            }
         } else {
-            printf("❌ COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
             nodo_libre(ast);
             free_symtab();
             return semantic_result;

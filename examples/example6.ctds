@@ -1,0 +1,17 @@
+program {
+    integer x = 1;
+    integer y = 2;
+    integer z = 3;
+    integer w = 4;
+
+    integer suma4(integer p1, integer p2, integer p3, integer p4) {
+        integer temp1 = p1 + p2;
+        integer temp2 = p3 + p4;
+        return temp1 + temp2;
+    }
+
+    void main() {
+        integer res = suma4(x, y, z, w);
+        return ;
+    }
+}
