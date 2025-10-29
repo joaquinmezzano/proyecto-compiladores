@@ -4,6 +4,9 @@
 #include "ast.h"
 #include "symtab.h"
 
+/*
+ * Tipos de instrucciones
+ */
 typedef enum {
     IR_LOAD,
     IR_STORE,
@@ -34,6 +37,9 @@ typedef enum {
     IR_CALL_PARAM
 } IRInstr;
 
+/*
+ * Estructuras necesarias.
+ */
 typedef struct IRSymbol {
     char *name;
     enum {
@@ -62,6 +68,9 @@ typedef struct IRList {
     int capacity;
 } IRList;
 
+/*
+ * Funciones a implementar.
+ */
 void ir_init(IRList *list);
 void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol *result);
 void ir_print(IRList *list);

@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdint.h>
 
+/*
+ * Array para mapear cada operación de tipo IRInstr con su nombre textual.
+ */
 static const char *ir_names[] = {
     "LOAD", "STORE", "ADD", "SUB", "UMINUS", "MUL", "DIV", "MOD",
     "AND", "OR", "NOT", "EQ", "NEQ", "LT", "LE", "GT", "GE", "LABEL",
@@ -14,12 +17,18 @@ static const char *ir_names[] = {
 static int temp_count = 0;
 static int label_count = 0;
 
+/*
+ * Inicializa una lista de instrucciones IR
+ */
 void ir_init(IRList *list) {
     list->codes = NULL;
     list->size = 0;
     list->capacity = 0;
 }
 
+/*
+ * Agrega una nueva instrucción IR a la lista dinámica (IRList)
+ */
 void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol *result) {
     // Redimensionar si no hay espacio
     if (list->size >= list->capacity) {
@@ -38,6 +47,10 @@ void ir_emit(IRList *list, IRInstr op, IRSymbol *arg1, IRSymbol *arg2, IRSymbol 
     code->result = result;
 }
 
+/*
+ * Crea un simbolo temporal nuevo.
+ * Tales como "t0", "t1", entre otros.
+ */
 IRSymbol *new_temp_symbol() {
     IRSymbol *sym = malloc(sizeof(IRSymbol));
     if (!sym) {
@@ -52,6 +65,10 @@ IRSymbol *new_temp_symbol() {
     return sym;
 }
 
+/*
+ * Crea una etiqueta nueva utilizada para saltos (GOTO, WHILE, entre otros).
+ * Tales como "L0", "L1", entre otros.
+ */
 IRSymbol *new_label_symbol() {
     IRSymbol *sym = malloc(sizeof(IRSymbol));
     if (!sym) {
@@ -66,6 +83,9 @@ IRSymbol *new_label_symbol() {
     return sym;
 }
 
+/*
+ * Crea un simbolo de una constante numérica o booleana.
+ */
 IRSymbol *new_const_symbol(int value, int is_bool) {
     IRSymbol *sym = malloc(sizeof(IRSymbol));
     if (!sym) {
@@ -86,6 +106,9 @@ IRSymbol *new_const_symbol(int value, int is_bool) {
     return sym;
 }
 
+/*
+ * Crea un simbolo de una variable.
+ */
 IRSymbol *new_var_symbol(const char *name) {
     IRSymbol *sym = malloc(sizeof(IRSymbol));
     if (!sym) {
@@ -98,6 +121,9 @@ IRSymbol *new_var_symbol(const char *name) {
     return sym;
 }
 
+/*
+ * Crea un simbolo de una función.
+ */
 IRSymbol *new_func_symbol(const char *name) {
     IRSymbol *sym = malloc(sizeof(IRSymbol));
     if (!sym) {
@@ -110,6 +136,9 @@ IRSymbol *new_func_symbol(const char *name) {
     return sym;
 }
 
+/*
+ * Libera un simbolo cuando ya no es necesario.
+ */
 void free_ir_symbol(IRSymbol *sym) {
     if (sym) {
         if (sym->name) {
@@ -120,6 +149,9 @@ void free_ir_symbol(IRSymbol *sym) {
     }
 }
 
+/*
+ * Convierte recursivamente cada nodo del árbol sintáctico en una secuencia de instrucciones IR.
+ */
 IRSymbol *gen_code(Nodo *node, IRList *list) {
     if (!node) return NULL;
 
@@ -415,7 +447,6 @@ IRSymbol *gen_code(Nodo *node, IRList *list) {
 
         case NODO_BLOCK:
         case NODO_SENT:
-            // Estos nodos no generan código por sí mismos
             break;
 
         default: {
@@ -427,6 +458,9 @@ IRSymbol *gen_code(Nodo *node, IRList *list) {
     return NULL;
 }
 
+/*
+ * Printea el código intermedio a consola.
+ */
 void ir_print(IRList *list) {
     printf("\n--- CÓDIGO INTERMEDIO ---\n");
     for (int i = 0; i < list->size; i++) {
@@ -502,6 +536,9 @@ void ir_print(IRList *list) {
     printf("--- FIN CÓDIGO INTERMEDIO ---\n\n");
 }
 
+/*
+ * Guarda el IR resultante en un archivo llamado inter.ir
+ */
 void ir_save_to_file(IRList *list, const char *filename) {
     FILE *file = fopen(filename, "w");
     if (!file) {
@@ -597,6 +634,9 @@ void ir_save_to_file(IRList *list, const char *filename) {
     printf("Código intermedio guardado en: %s\n", filename);
 }
 
+/*
+ * Libera la memoria de la lista.
+ */
 void ir_free(IRList *list) {
     if (list && list->codes) {
         free(list->codes);
@@ -606,6 +646,10 @@ void ir_free(IRList *list) {
     }
 }
 
+/*
+ * Inicializa la lista del IR, recorre el ast completo con gen_code(), 
+ * imprime, guarda y libera la memoria.
+ */
 int generate_intermediate_code(Nodo *ast) {
     if (!ast) {
         fprintf(stderr, "Error: AST es NULL\n");
@@ -619,10 +663,7 @@ int generate_intermediate_code(Nodo *ast) {
     printf("\n| GENERANDO CÓDIGO INTERMEDIO |");
     printf("\n ---------------------------- \n");
     
-    // Generar código intermedio recorriendo el AST
-    // Comenzar desde el primer hijo del nodo program
     if (ast->tipo == NODO_ID && strcmp(ast->nombre, "program") == 0) {
-        // Procesar todos los nodos hermanos (declaraciones y métodos)
         Nodo *current = ast->siguiente;
         while (current) {
             gen_code(current, &ir_list);
@@ -632,13 +673,8 @@ int generate_intermediate_code(Nodo *ast) {
         gen_code(ast, &ir_list);
     }
     
-    // Imprimir código intermedio
     ir_print(&ir_list);
-    
-    // Guardar a archivo
     ir_save_to_file(&ir_list, "inter.ir");
-    
-    // Liberar memoria
     ir_free(&ir_list);
     
     printf("✓ Generación de código intermedio completado exitosamente.\n\n");
