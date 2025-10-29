@@ -291,12 +291,22 @@ IRSymbol *gen_code(Nodo *node, IRList *list) {
                 break;
             }
             
-            // Método externo
+            // Método externo - solo declaración
             if (node->method.body == NULL) {
                 IRSymbol *func_sym = new_func_symbol(node->method.nombre);
                 ir_emit(list, IR_EXTERN, NULL, NULL, func_sym);
             } else {
-                // Método normal
+                // No generar METHOD para funciones que sabemos están en archivos C
+                if (strcmp(node->method.nombre, "inc") == 0 ||
+                    strcmp(node->method.nombre, "get_int") == 0 ||
+                    strcmp(node->method.nombre, "print_int") == 0) {
+                    // Solo marcar como extern, no generar implementación
+                    IRSymbol *func_sym = new_func_symbol(node->method.nombre);
+                    ir_emit(list, IR_EXTERN, NULL, NULL, func_sym);
+                    break;
+                }
+                
+                // Método normal - generar implementación
                 IRSymbol *func_sym = new_func_symbol(node->method.nombre);
                 ir_emit(list, IR_METHOD, NULL, NULL, func_sym);
                 
