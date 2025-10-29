@@ -1,0 +1,15 @@
+program {
+    integer inc(integer x) {
+        return x + 1;
+    }
+    
+    integer get_int() extern;
+    
+    void print_int(integer i) extern;
+    
+    void main() {
+        integer y;
+        y = get_int();
+        print_int(y);
+    }
+}
