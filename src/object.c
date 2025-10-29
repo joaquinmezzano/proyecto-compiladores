@@ -1,15 +1,21 @@
 #include "object.h"
 #include "intermediate.h"
 
+/* Llevamos la cuenta de la cantidad de registros temporales. */
 static int temp_register_count = 0;
 
-/* CONSTRUCTORS AND DESTRUCTORS */
+/*
+ * Inicializamos el buffer resultante.
+ */
 void object_init(ObjectCode *obj) {
     obj->lines = NULL;
     obj->size = 0;
     obj->capacity = 0;
 }
 
+/*
+ * Liberamos el buffer (libera la memoria)
+ */
 void object_free(ObjectCode *obj) {
     if (obj->lines) {
         for (int i = 0; i < obj->size; i++) {
@@ -22,6 +28,9 @@ void object_free(ObjectCode *obj) {
     obj->capacity = 0;
 }
 
+/*
+ * Inicializador de la tabla de variables, la "symbol table" del stack frame.
+ */
 void var_table_init(VarTable *table) {
     table->vars = NULL;
     table->count = 0;
@@ -29,6 +38,9 @@ void var_table_init(VarTable *table) {
     table->stack_size = 0;
 }
 
+/*
+ * Liberamos la tabla de variables.
+ */
 void var_table_free(VarTable *table) {
     if (table->vars) {
         for (int i = 0; i < table->count; i++) {
@@ -41,7 +53,9 @@ void var_table_free(VarTable *table) {
     table->capacity = 0;
 }
 
-/* METHODS */
+/*
+ * Toma una instrucción del IR, la traduce a código objeto y la agrega al resultado.
+ */
 void object_emit(ObjectCode *obj, const char *line) {
     if (obj->size >= obj->capacity) {
         obj->capacity = (obj->capacity == 0) ? 32 : obj->capacity * 2;
@@ -54,6 +68,10 @@ void object_emit(ObjectCode *obj, const char *line) {
     obj->lines[obj->size++] = strdup(line);
 }
 
+/*
+ * Agrega una variable local a la tabla y le asigna un offset negativo desde %rbp.
+ * Cada variable ocupa 8 bytes (qword)
+ */
 int var_table_add(VarTable *table, const char *name) {
     for (int i = 0; i < table->count; i++) {
         if (strcmp(table->vars[i].name, name) == 0) {
@@ -80,6 +98,9 @@ int var_table_add(VarTable *table, const char *name) {
     return offset;
 }
 
+/*
+ * Busca una variable en la tabla y devuelve cuanto offset tiene.
+ */
 int var_table_get_offset(VarTable *table, const char *name) {
     for (int i = 0; i < table->count; i++) {
         if (strcmp(table->vars[i].name, name) == 0) {
@@ -89,20 +110,34 @@ int var_table_get_offset(VarTable *table, const char *name) {
     return 0;
 }
 
+/*
+ * Detecta si una variable es un temporal del IR.
+ * Como "t0", "t5", entre otros.
+ */
 int is_temp_var(const char *name) {
     return name && name[0] == 't' && (name[1] >= '0' && name[1] <= '9');
 }
 
+/*
+ * Detecta si un nombre es un número.
+ */
 int is_constant(const char *name) {
     if (!name) return 0;
     return (name[0] == '-' && name[1] >= '0' && name[1] <= '9') || 
            (name[0] >= '0' && name[0] <= '9');
 }
 
+/*
+ * Detecta si un nombre es una etiqueta.
+ * Como "L1", "L2", entre otros. 
+ */
 int is_label(const char *name) {
     return name && name[0] == 'L' && (name[1] >= '0' && name[1] <= '9');
 }
 
+/*
+ * Asigna un registro a cada variable temporal.
+ */
 const char* get_register_for_temp(const char *temp_name) {
     static const char* registers[] = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9"};
     static int temp_to_reg[256];
@@ -126,6 +161,9 @@ const char* get_register_for_temp(const char *temp_name) {
     return registers[temp_to_reg[temp_num]];
 }
 
+/*
+ * Genera el prologo de una función.
+ */
 void translate_prologue(ObjectCode *obj, const char *func_name, VarTable *vars) {
     char line[256];
     
@@ -144,11 +182,17 @@ void translate_prologue(ObjectCode *obj, const char *func_name, VarTable *vars) 
     }
 }
 
+/*
+ * Genera el epilogo de una función.
+ */
 void translate_epilogue(ObjectCode *obj) {
     object_emit(obj, "\tleave");
     object_emit(obj, "\tret");
 }
 
+/*
+ * Traduce de una instrucción IR a su equivalente en código objeto.
+ */
 void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
     char line[512];
     
@@ -261,7 +305,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             snprintf(line, sizeof(line), "\tidivq\t%s", divisor_reg);
             object_emit(obj, line);
             
-            // Para MOD, el resultado está en RDX
             if (strcmp(result_reg, "%rdx") != 0) {
                 snprintf(line, sizeof(line), "\tmovq\t%%rdx, %s", result_reg);
                 object_emit(obj, line);
@@ -426,7 +469,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *reg2 = get_register_for_temp(code->arg2->name);
             const char *result_reg = get_register_for_temp(code->result->name);
             
-            // AND lógico: result = (arg1 != 0) && (arg2 != 0)
             snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
             object_emit(obj, line);
             snprintf(line, sizeof(line), "\tsetne\t%%al");
@@ -449,7 +491,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *reg2 = get_register_for_temp(code->arg2->name);
             const char *result_reg = get_register_for_temp(code->result->name);
             
-            // OR lógico: result = (arg1 != 0) || (arg2 != 0)
             snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
             object_emit(obj, line);
             snprintf(line, sizeof(line), "\tsetne\t%%al");
@@ -471,7 +512,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *reg1 = get_register_for_temp(code->arg1->name);
             const char *result_reg = get_register_for_temp(code->result->name);
             
-            // NOT lógico: result = !(arg1 != 0)
             snprintf(line, sizeof(line), "\tcmpq\t$0, %s", reg1);
             object_emit(obj, line);
             snprintf(line, sizeof(line), "\tsete\t%%al");
@@ -489,7 +529,6 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *reg1 = get_register_for_temp(code->arg1->name);
             const char *result_reg = get_register_for_temp(code->result->name);
             
-            // Menos unario: result = -arg1
             if (strcmp(reg1, result_reg) != 0) {
                 snprintf(line, sizeof(line), "\tmovq\t%s, %s", reg1, result_reg);
                 object_emit(obj, line);
@@ -560,6 +599,12 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
     }
 }
 
+/*
+ * Hace todo el proceso de traducción; abre el archivo .ir, inicializa las estructuras,
+ * agrega .text al inicio del output, lee el archivo .ir linea por linea, parsea los
+ * argumentos y crea una estructura IRCode, usa translate_ir_instruction() para traducir,
+ * por último emite .section .note.GNU-stack y guarda el archivo resultante como output.s
+ */
 int generate_object_code(const char *ir_filename, const char *output_filename) {
     FILE *ir_file = fopen(ir_filename, "r");
     if (!ir_file) {

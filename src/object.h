@@ -3,6 +3,9 @@
 
 #include "intermediate.h"
 
+/*
+ * Estructuras necesarias.
+ */
 typedef struct {
     char **lines;
     int size;
@@ -21,6 +24,9 @@ typedef struct {
     int stack_size;
 } VarTable;
 
+/*
+ * Declaraciones de funciones a definir.
+ */
 void object_init(ObjectCode *obj);
 void object_free(ObjectCode *obj);
 void var_table_init(VarTable *table);
