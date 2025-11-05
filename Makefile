@@ -73,9 +73,11 @@ rebuild: clean all
 .PHONY: run
 run: $(EXECUTABLE)
 	@if [ -z "$(FILE)" ]; then \
-		echo "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1]"; \
+		echo "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>]"; \
 		echo "Ejemplo: make run FILE=examples/example1.ctds"; \
 		echo "Con debug: make run FILE=examples/example1.ctds DEBUG=1"; \
+		echo "Con target: make run FILE=examples/example1.ctds TARGET=semantic"; \
+		echo "Etapas: syntax/semantic, ir, object (default), all"; \
 		exit 1; \
 	fi
 	@if [ ! -f "$(FILE)" ]; then \
@@ -83,11 +85,17 @@ run: $(EXECUTABLE)
 		exit 1; \
 	fi
 	@if [ "$(DEBUG)" = "1" ]; then \
-		echo "==> Ejecutando parser con análisis semántico en $(FILE) (modo debug)..."; \
+		if [ -n "$(TARGET)" ]; then \
+			echo "==> Ejecutando compilación de $(FILE) (modo debug, target: $(TARGET))..."; \
+		else \
+			echo "==> Ejecutando parser con análisis semántico en $(FILE) (modo debug)..."; \
+		fi; \
 		echo ""; \
 		echo "--------------------------------------------------"; \
 		echo ""; \
-		if ./$(EXECUTABLE) -debug < "$(FILE)"; then \
+		TARGET_ARG=""; \
+		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
+		if ./$(EXECUTABLE) -debug $$TARGET_ARG < "$(FILE)"; then \
 			echo " --------------------------- "; \
 			echo "| Reporte final del programa |"; \
 			echo " --------------------------- "; \
@@ -95,8 +103,14 @@ run: $(EXECUTABLE)
 			echo "✓ Análisis completado exitosamente."; \
 			if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
 			if [ -f "sintaxis.output" ]; then echo "✓ Reporte de parser: sintaxis.output"; fi; \
-			if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
-			if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
+			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
+				: ; \
+			elif [ "$(TARGET)" = "ir" ]; then \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+			else \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
+			fi; \
 			echo "✓ Archivo analizado: $(FILE) ($$(wc -l < "$(FILE)" | xargs) líneas)"; \
 			echo ""; \
 		else \
@@ -112,12 +126,24 @@ run: $(EXECUTABLE)
 			exit 1; \
 		fi; \
 	else \
-		echo "==> Ejecutando compilación de $(FILE)..."; \
-		if ./$(EXECUTABLE) < "$(FILE)"; then \
+		if [ -n "$(TARGET)" ]; then \
+			echo "==> Ejecutando compilación de $(FILE) (target: $(TARGET))..."; \
+		else \
+			echo "==> Ejecutando compilación de $(FILE)..."; \
+		fi; \
+		TARGET_ARG=""; \
+		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
+		if ./$(EXECUTABLE) $$TARGET_ARG < "$(FILE)"; then \
 			echo "✓ Compilación exitosa: $(FILE)"; \
-			echo "✓ AST generado: ast_tree.png"; \
-			echo "✓ Código intermedio generado: inter.ir"; \
-			echo "✓ Código objeto generado: output.s"; \
+			if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
+			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
+				: ; \
+			elif [ "$(TARGET)" = "ir" ]; then \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+			else \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
+			fi; \
 		else \
 			echo "✗ Error durante la compilación de $(FILE)"; \
 			exit 1; \
@@ -172,9 +198,15 @@ help:
 	@echo "  rebuild         - Limpiar y recompilar desde cero"
 	@echo "  check-sources   - Verificar que existan todos los archivos fuente"
 	@echo ""
-	@echo "  run FILE=<archivo> [DEBUG=1] - Ejecutar el compilador con un archivo específico"
+	@echo "  run FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] - Ejecutar el compilador"
 	@echo "                                Ejemplo: make run FILE=examples/example1.ctds"
 	@echo "                                Con debug: make run FILE=examples/example1.ctds DEBUG=1"
+	@echo "                                Con target: make run FILE=examples/example1.ctds TARGET=ir"
+	@echo ""
+	@echo "  Etapas disponibles (TARGET):"
+	@echo "    syntax/semantic - Hasta análisis semántico + AST optimizado"
+	@echo "    ir              - Hasta código intermedio + optimizaciones IR"
+	@echo "    object/all      - Compilación completa hasta código objeto (default)"
 	@echo ""
 	@echo "  test-all        - Ejecutar todos los ejemplos"
 	@echo "  test-good       - Ejecutar solo ejemplos válidos"

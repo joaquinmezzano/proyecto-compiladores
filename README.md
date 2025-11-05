@@ -46,12 +46,20 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
 ### Ejecución
 
-    make run FILE=<archivo.ctds> [DEBUG=1]
+    make run FILE=<archivo.ctds> [DEBUG=1] [TARGET=<etapa>]
 
 | Comando                   | Descripción                            | Ejemplo                                |
 | ------------------------- | -------------------------------------- | -------------------------------------- |
 | `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
-| `make run FILE=<archivo> DEBUG=1` | Ejecuta el compilador con un archivo en modo debug | `make run FILE=examples/example1.ctds DEBUG=1` |
+| `make run FILE=<archivo> DEBUG=1` | Ejecuta en modo debug (output detallado) | `make run FILE=examples/example1.ctds DEBUG=1` |
+| `make run FILE=<archivo> TARGET=<etapa>` | Compila hasta etapa específica | `make run FILE=examples/example1.ctds TARGET=ir` |
 | `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
-| `make test-good`          | Ejecuta solo ejemplos válidos          | `make test-good`                       |
-| `make test-errors`        | Ejecuta ejemplos con errores esperados | `make test-errors`                     |
+| `make help`               | Muestra ayuda completa                  | `make help`                            |
+
+## Etapas de compilación (TARGET)
+
+| Etapa | Hasta donde compila | Archivos generados |
+|-------|--------------------|--------------------|
+| `syntax`/`semantic` | Análisis semántico + AST optimizado | `ast_tree.png` |
+| `ir` | Código intermedio + optimizaciones IR | `ast_tree.png`, `inter.ir` |
+| `object`/`all` | Compilación completa (default) | `ast_tree.png`, `inter.ir`, `output.s` |

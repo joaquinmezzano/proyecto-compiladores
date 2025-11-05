@@ -23,6 +23,14 @@ int yylex(void);
 
 Nodo *ast = NULL;
 int debug_mode = 0;
+typedef enum {
+    TARGET_SEMANTIC,    // Hasta análisis semántico (incluye AST + optimizaciones)
+    TARGET_IR,          // Hasta código intermedio
+    TARGET_OBJECT,      // Hasta código objeto (completo)
+    TARGET_ALL          // Alias para TARGET_OBJECT
+} target_stage_t;
+
+target_stage_t target_stage = TARGET_ALL;
 %}
 
 /*
@@ -348,11 +356,32 @@ void yyerror(const char *s) {
 }
 
 int main(int argc, char **argv) {
-    // Verificar si se pasó el flag -debug
+    // Parsear argumentos de línea de comandos
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-debug") == 0) {
             debug_mode = 1;
-            break;
+        } else if (strcmp(argv[i], "-target") == 0) {
+            if (i + 1 < argc) {
+                i++; // Avanzar al siguiente argumento
+                if (strcmp(argv[i], "syntax") == 0 || strcmp(argv[i], "semantic") == 0) {
+                    target_stage = TARGET_SEMANTIC;
+                } else if (strcmp(argv[i], "ir") == 0) {
+                    target_stage = TARGET_IR;
+                } else if (strcmp(argv[i], "object") == 0 || strcmp(argv[i], "all") == 0) {
+                    target_stage = TARGET_OBJECT;
+                } else {
+                    fprintf(stderr, "Error: etapa desconocida '%s'\n", argv[i]);
+                    fprintf(stderr, "Etapas válidas:\n");
+                    fprintf(stderr, "  syntax/semantic - Análisis sintáctico y semántico + AST (con optimizaciones)\n");
+                    fprintf(stderr, "  ir              - Hasta código intermedio (incluye optimizaciones IR)\n");
+                    fprintf(stderr, "  object          - Compilación completa hasta código objeto\n");
+                    fprintf(stderr, "  all             - Alias para 'object' (por defecto)\n");
+                    return 1;
+                }
+            } else {
+                fprintf(stderr, "Error: -target requiere una etapa (syntax, semantic, ir, object, all)\n");
+                return 1;
+            }
         }
     }
     
@@ -369,13 +398,17 @@ int main(int argc, char **argv) {
             generar_png_ast(ast);
 
             print_symtab();
-
-            printf(" ------------------------------");
-            printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
-            printf("\n ------------------------------\n");
         } else {
             printf("✓ Análisis sintáctico completado exitosamente.\n");
             generar_png_ast(ast);
+        }
+        
+
+        
+        if (debug_mode) {
+            printf(" ------------------------------");
+            printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
+            printf("\n ------------------------------\n");
         }
         
         // Aplicar optimizaciones al AST antes del análisis semántico
@@ -383,10 +416,34 @@ int main(int argc, char **argv) {
         
         int semantic_result = semantic_analysis(ast);
         
-        if (semantic_result == 0) {          
+        if (semantic_result == 0) {
+            // Si solo queremos análisis semántico
+            if (target_stage == TARGET_SEMANTIC) {
+                if (debug_mode) {
+                    printf("\n==> Compilación detenida en etapa: SEMANTIC\n");
+                } else {
+                    printf("✓ Compilación completada hasta: análisis semántico + AST optimizado.\n");
+                }
+                nodo_libre(ast);
+                free_symtab();
+                return 0;
+            }
+            
             int ir_result = generate_intermediate_code(ast);
             
             if (ir_result == 0) {
+                // Si solo queremos código intermedio
+                if (target_stage == TARGET_IR) {
+                    if (debug_mode) {
+                        printf("\n==> Compilación detenida en etapa: IR\n");
+                    } else {
+                        printf("✓ Compilación completada hasta: código intermedio.\n");
+                    }
+                    nodo_libre(ast);
+                    free_symtab();
+                    return 0;
+                }
+                
                 if (debug_mode) {
                     printf(" ------------------------- ");
                     printf("\n| GENERANDO CÓDIGO OBJETO |");
