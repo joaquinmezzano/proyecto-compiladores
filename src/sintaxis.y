@@ -10,6 +10,7 @@
 #include "semantics.h"
 #include "intermediate.h"
 #include "object.h"
+#include "optimizer.h"
 
 /*
  * Declarar variables del lexer
@@ -376,6 +377,9 @@ int main(int argc, char **argv) {
             printf("✓ Análisis sintáctico completado exitosamente.\n");
             generar_png_ast(ast);
         }
+        
+        // Aplicar optimizaciones al AST antes del análisis semántico
+        ast = optimize_ast(ast);
         
         int semantic_result = semantic_analysis(ast);
         

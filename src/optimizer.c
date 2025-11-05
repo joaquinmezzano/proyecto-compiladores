@@ -69,7 +69,7 @@ void mark_instruction_as_nop(IRList *list, int index) {
 }
 
 /*
- * Optimización peephole principal
+ * Optimización peephole principal para instrucciones IR
  * Transforma patrones específicos:
  * - x / 2^n  →  x >> n
  * - x * 2^n  →  x << n
@@ -167,7 +167,7 @@ void optimize_peephole(IRList *list) {
 }
 
 /*
- * Constant folding: evaluar operaciones con constantes en tiempo de compilación
+ * Constant folding para IR: evaluar operaciones con constantes en tiempo de compilación
  * Ejemplo: 2 + 3 → 5
  */
 void optimize_constant_folding(IRList *list) {
@@ -252,7 +252,7 @@ void optimize_constant_folding(IRList *list) {
 }
 
 /*
- * Propagación de constantes
+ * Propagación de constantes en IR
  * Si t1 = 5 y luego usamos t1, reemplazar por 5 directamente
  */
 void optimize_constant_propagation(IRList *list) {
@@ -315,7 +315,7 @@ void optimize_constant_propagation(IRList *list) {
 }
 
 /*
- * Eliminación de código muerto.
+ * Eliminación de código muerto en IR.
  */
 void optimize_dead_code_elimination(IRList *list) {
     int optimizations = 0;
@@ -404,7 +404,7 @@ void optimize_dead_code_elimination(IRList *list) {
 }
 
 /*
- * Simplificación algebraica adicional.
+ * Simplificación algebraica adicional para las IR.
  */
 void optimize_algebraic_simplification(IRList *list) {
     int optimizations = 0;
@@ -437,29 +437,379 @@ void optimize_algebraic_simplification(IRList *list) {
 }
 
 /*
- * Función principal que ejecuta todas las optimizaciones en orden
+ * Optimización de constant folding en el AST.
+ */
+Nodo *optimize_ast_constant_folding(Nodo *node) {
+    if (!node) return NULL;
+    
+    // Procesar nodos hijo según el tipo
+    switch (node->tipo) {
+        case NODO_OP:
+            // Primero optimizar los operandos
+            if (node->opBinaria.izq) {
+                node->opBinaria.izq = optimize_ast_constant_folding(node->opBinaria.izq);
+            }
+            if (node->opBinaria.der) {
+                node->opBinaria.der = optimize_ast_constant_folding(node->opBinaria.der);
+            }
+            
+            // Ahora verificar si se puede hacer constant folding
+            Nodo *izq = node->opBinaria.izq;
+            Nodo *der = node->opBinaria.der;
+            
+            if (izq && der && izq->tipo == NODO_INTEGER && der->tipo == NODO_INTEGER) {
+                int val1 = izq->val_int;
+                int val2 = der->val_int;
+                int result_value = 0;
+                bool can_fold = true;
+                
+                switch (node->opBinaria.op) {
+                    case TOP_SUMA:
+                        result_value = val1 + val2;
+                        break;
+                    case TOP_RESTA:
+                        result_value = val1 - val2;
+                        break;
+                    case TOP_MULT:
+                        result_value = val1 * val2;
+                        break;
+                    case TOP_DIV:
+                        if (val2 != 0) {
+                            result_value = val1 / val2;
+                        } else {
+                            can_fold = false;
+                        }
+                        break;
+                    case TOP_RESTO:
+                        if (val2 != 0) {
+                            result_value = val1 % val2;
+                        } else {
+                            can_fold = false;
+                        }
+                        break;
+                    case TOP_COMP:
+                        result_value = (val1 == val2) ? 1 : 0;
+                        break;
+                    case TOP_DESIGUAL:
+                        result_value = (val1 != val2) ? 1 : 0;
+                        break;
+                    case TOP_MENOR:
+                        result_value = (val1 < val2) ? 1 : 0;
+                        break;
+                    case TOP_MAYOR:
+                        result_value = (val1 > val2) ? 1 : 0;
+                        break;
+                    case TOP_MENORIG:
+                        result_value = (val1 <= val2) ? 1 : 0;
+                        break;
+                    case TOP_MAYORIG:
+                        result_value = (val1 >= val2) ? 1 : 0;
+                        break;
+                    case TOP_AND:
+                        result_value = (val1 && val2) ? 1 : 0;
+                        break;
+                    case TOP_OR:
+                        result_value = (val1 || val2) ? 1 : 0;
+                        break;
+                    default:
+                        can_fold = false;
+                }
+                
+                if (can_fold) {
+                    if (debug_mode) {
+                        printf("  [AST FOLDING] %d op %d → %d\n", val1, val2, result_value);
+                    }
+                    
+                    // Convertir este nodo a un nodo INTEGER con el resultado
+                    node->tipo = NODO_INTEGER;
+                    node->val_int = result_value;
+                    // No liberamos los nodos hijo aquí para evitar problemas de memoria
+                    // El garbage collector se encargará
+                    node->opBinaria.izq = NULL;
+                    node->opBinaria.der = NULL;
+                }
+            }
+            break;
+            
+        case NODO_RETURN:
+            if (node->ret_expr) {
+                node->ret_expr = optimize_ast_constant_folding(node->ret_expr);
+            }
+            break;
+            
+        case NODO_ASSIGN:
+            if (node->assign.expr) {
+                node->assign.expr = optimize_ast_constant_folding(node->assign.expr);
+            }
+            break;
+            
+        case NODO_METHOD:
+            if (node->method.body) {
+                node->method.body = optimize_ast_constant_folding(node->method.body);
+            }
+            break;
+            
+        case NODO_METHOD_CALL:
+            if (node->method_call.args) {
+                node->method_call.args = optimize_ast_constant_folding(node->method_call.args);
+            }
+            break;
+            
+        case NODO_IF:
+            if (node->if_stmt.cond) {
+                node->if_stmt.cond = optimize_ast_constant_folding(node->if_stmt.cond);
+            }
+            if (node->if_stmt.then_block) {
+                node->if_stmt.then_block = optimize_ast_constant_folding(node->if_stmt.then_block);
+            }
+            if (node->if_stmt.else_block) {
+                node->if_stmt.else_block = optimize_ast_constant_folding(node->if_stmt.else_block);
+            }
+            break;
+            
+        case NODO_WHILE:
+            if (node->while_stmt.cond) {
+                node->while_stmt.cond = optimize_ast_constant_folding(node->while_stmt.cond);
+            }
+            if (node->while_stmt.body) {
+                node->while_stmt.body = optimize_ast_constant_folding(node->while_stmt.body);
+            }
+            break;
+            
+        default:
+            // Para otros tipos de nodo, no hay nada que optimizar
+            break;
+    }
+    
+    // Procesar el nodo siguiente si existe
+    if (node->siguiente) {
+        node->siguiente = optimize_ast_constant_folding(node->siguiente);
+    }
+    
+    return node;
+}
+
+/*
+ * Optimización de expresiones algebraicas en el AST
+ */
+Nodo *optimize_ast_algebraic_simplification(Nodo *node) {
+    if (!node) return NULL;
+    
+    // Procesar nodos hijo según el tipo
+    switch (node->tipo) {
+        case NODO_OP:
+            // Primero optimizar los operandos
+            if (node->opBinaria.izq) {
+                node->opBinaria.izq = optimize_ast_algebraic_simplification(node->opBinaria.izq);
+            }
+            if (node->opBinaria.der) {
+                node->opBinaria.der = optimize_ast_algebraic_simplification(node->opBinaria.der);
+            }
+            
+            // Ahora verificar si se puede hacer simplificación algebraica
+            Nodo *izq = node->opBinaria.izq;
+            Nodo *der = node->opBinaria.der;
+            
+            // x * 0 = 0 (más seguro procesar esto primero)
+            if (node->opBinaria.op == TOP_MULT) {
+                if ((der && der->tipo == NODO_INTEGER && der->val_int == 0) ||
+                    (izq && izq->tipo == NODO_INTEGER && izq->val_int == 0)) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] x * 0 → 0\n");
+                    }
+                    node->tipo = NODO_INTEGER;
+                    node->val_int = 0;
+                    node->opBinaria.izq = NULL;
+                    node->opBinaria.der = NULL;
+                }
+            }
+            break;
+            
+        case NODO_RETURN:
+            if (node->ret_expr) {
+                node->ret_expr = optimize_ast_algebraic_simplification(node->ret_expr);
+            }
+            break;
+            
+        case NODO_ASSIGN:
+            if (node->assign.expr) {
+                node->assign.expr = optimize_ast_algebraic_simplification(node->assign.expr);
+            }
+            break;
+            
+        case NODO_METHOD:
+            if (node->method.body) {
+                node->method.body = optimize_ast_algebraic_simplification(node->method.body);
+            }
+            break;
+            
+        case NODO_METHOD_CALL:
+            if (node->method_call.args) {
+                node->method_call.args = optimize_ast_algebraic_simplification(node->method_call.args);
+            }
+            break;
+            
+        case NODO_IF:
+            if (node->if_stmt.cond) {
+                node->if_stmt.cond = optimize_ast_algebraic_simplification(node->if_stmt.cond);
+            }
+            if (node->if_stmt.then_block) {
+                node->if_stmt.then_block = optimize_ast_algebraic_simplification(node->if_stmt.then_block);
+            }
+            if (node->if_stmt.else_block) {
+                node->if_stmt.else_block = optimize_ast_algebraic_simplification(node->if_stmt.else_block);
+            }
+            break;
+            
+        case NODO_WHILE:
+            if (node->while_stmt.cond) {
+                node->while_stmt.cond = optimize_ast_algebraic_simplification(node->while_stmt.cond);
+            }
+            if (node->while_stmt.body) {
+                node->while_stmt.body = optimize_ast_algebraic_simplification(node->while_stmt.body);
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
+    // Procesar el siguiente nodo si es que existe
+    if (node->siguiente) {
+        node->siguiente = optimize_ast_algebraic_simplification(node->siguiente);
+    }
+    
+    return node;
+}
+
+/*
+ * Eliminación de código muerto en el AST.
+ */
+Nodo *optimize_ast_dead_code_elimination(Nodo *node) {
+    if (!node) return NULL;
+    
+    // Procesar nodos hijo según el tipo
+    switch (node->tipo) {
+        case NODO_METHOD:
+            if (node->method.body) {
+                node->method.body = optimize_ast_dead_code_elimination(node->method.body);
+                
+                // Si el cuerpo tiene un return, marcar código muerto después
+                Nodo *current = node->method.body;
+                while (current) {
+                    if (current->tipo == NODO_RETURN) {
+                        // Si hay código después del return, reportarlo
+                        if (current->siguiente) {
+                            if (debug_mode) {
+                                printf("  [AST DEAD CODE] Código después de return detectado\n");
+                            }
+                            // Por seguridad, solo marcamos que hay código muerto
+                            // pero no lo eliminamos para evitar problemas de memoria
+                        }
+                        break;
+                    }
+                    current = current->siguiente;
+                }
+            }
+            break;
+            
+        case NODO_RETURN:
+            if (node->ret_expr) {
+                node->ret_expr = optimize_ast_dead_code_elimination(node->ret_expr);
+            }
+            break;
+            
+        case NODO_ASSIGN:
+            if (node->assign.expr) {
+                node->assign.expr = optimize_ast_dead_code_elimination(node->assign.expr);
+            }
+            break;
+            
+        case NODO_OP:
+            if (node->opBinaria.izq) {
+                node->opBinaria.izq = optimize_ast_dead_code_elimination(node->opBinaria.izq);
+            }
+            if (node->opBinaria.der) {
+                node->opBinaria.der = optimize_ast_dead_code_elimination(node->opBinaria.der);
+            }
+            break;
+            
+        case NODO_METHOD_CALL:
+            if (node->method_call.args) {
+                node->method_call.args = optimize_ast_dead_code_elimination(node->method_call.args);
+            }
+            break;
+            
+        case NODO_IF:
+            if (node->if_stmt.cond) {
+                node->if_stmt.cond = optimize_ast_dead_code_elimination(node->if_stmt.cond);
+            }
+            if (node->if_stmt.then_block) {
+                node->if_stmt.then_block = optimize_ast_dead_code_elimination(node->if_stmt.then_block);
+            }
+            if (node->if_stmt.else_block) {
+                node->if_stmt.else_block = optimize_ast_dead_code_elimination(node->if_stmt.else_block);
+            }
+            break;
+            
+        case NODO_WHILE:
+            if (node->while_stmt.cond) {
+                node->while_stmt.cond = optimize_ast_dead_code_elimination(node->while_stmt.cond);
+            }
+            if (node->while_stmt.body) {
+                node->while_stmt.body = optimize_ast_dead_code_elimination(node->while_stmt.body);
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
+    // Procesar el nodo siguiente si existe
+    if (node->siguiente) {
+        node->siguiente = optimize_ast_dead_code_elimination(node->siguiente);
+    }
+    
+    return node;
+}
+
+
+/*
+ * Función principal que ejecuta todas las optimizaciones para el IR
  */
 void optimize_ir_code(IRList *list) {
     if (debug_mode) {
         printf("\n=== INICIANDO OPTIMIZACIONES ===\n");
     }
     
-    // Fase 1: Constant Folding
     optimize_constant_folding(list);
-    
-    // Fase 2: Constant Propagation
     optimize_constant_propagation(list);
-    
-    // Fase 3: Peephole (después de propagación)
     optimize_peephole(list);
-    
-    // Fase 4: Simplificación algebraica
     optimize_algebraic_simplification(list);
-    
-    // Fase 5: Dead Code Elimination (al final)
     optimize_dead_code_elimination(list);
     
     if (debug_mode) {
         printf("=== OPTIMIZACIONES COMPLETADAS ===\n\n");
     }
+}
+
+/*
+ * Función principal para optimizar el AST que aplica todas las optimizaciones sobre el árbol.
+ */
+Nodo *optimize_ast(Nodo *ast_root) {
+    if (!ast_root) return NULL;
+    
+    if (debug_mode) {
+        printf("\n=== INICIANDO OPTIMIZACIONES DEL AST ===\n");
+    }
+    
+    ast_root = optimize_ast_constant_folding(ast_root);
+    ast_root = optimize_ast_algebraic_simplification(ast_root);
+    ast_root = optimize_ast_dead_code_elimination(ast_root);
+    
+    if (debug_mode) {
+        printf("=== OPTIMIZACIONES DEL AST COMPLETADAS ===\n\n");
+    }
+    
+    return ast_root;
 }

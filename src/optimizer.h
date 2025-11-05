@@ -24,14 +24,21 @@ typedef struct {
 /*
  * Funciones principales de optimización
  */
+// Funciones para instrucciones IR
 void optimize_peephole(IRList *list);
 void optimize_constant_folding(IRList *list);
 void optimize_constant_propagation(IRList *list);
 void optimize_dead_code_elimination(IRList *list);
 void optimize_algebraic_simplification(IRList *list);
 
-// Función principal que ejecuta todas las optimizaciones
+// Funciones para AST
+Nodo *optimize_ast_constant_folding(Nodo *node);
+Nodo *optimize_ast_dead_code_elimination(Nodo *node);
+Nodo *optimize_ast_algebraic_simplification(Nodo *node);
+
+// Funciones para ejecutar las optimizaciones
 void optimize_ir_code(IRList *list);
+Nodo *optimize_ast(Nodo *ast_root);
 
 /*
  * Funciones auxiliares
