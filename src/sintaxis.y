@@ -21,6 +21,7 @@ void yyerror(const char *s);
 int yylex(void);
 
 Nodo *ast = NULL;
+int debug_mode = 0;
 %}
 
 /*
@@ -346,25 +347,35 @@ void yyerror(const char *s) {
 }
 
 int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+    // Verificar si se pasó el flag -debug
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-debug") == 0) {
+            debug_mode = 1;
+            break;
+        }
+    }
     
     init_symtab();
 
     if (yyparse() == 0) {
-        printf("Análisis sintáctico completado sin errores.\n");
-        printf("\n ----------------------------------");
-        printf("\n| Árbol Sintáctico Abstracto (AST) |");
-        printf("\n ----------------------------------\n");
+        if (debug_mode) {
+            printf("Análisis sintáctico completado sin errores.\n");
+            printf("\n ----------------------------------");
+            printf("\n| Árbol Sintáctico Abstracto (AST) |");
+            printf("\n ----------------------------------\n");
 
-        imprimir_nodo(ast, 0);
-        generar_png_ast(ast);
+            imprimir_nodo(ast, 0);
+            generar_png_ast(ast);
 
-        print_symtab();
+            print_symtab();
 
-        printf(" ------------------------------");
-        printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
-        printf("\n ------------------------------\n");
+            printf(" ------------------------------");
+            printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
+            printf("\n ------------------------------\n");
+        } else {
+            printf("✓ Análisis sintáctico completado exitosamente.\n");
+            generar_png_ast(ast);
+        }
         
         int semantic_result = semantic_analysis(ast);
         
@@ -372,14 +383,20 @@ int main(int argc, char **argv) {
             int ir_result = generate_intermediate_code(ast);
             
             if (ir_result == 0) {
-                printf(" ------------------------- ");
-                printf("\n| GENERANDO CÓDIGO OBJETO |");
-                printf("\n ------------------------- \n");
+                if (debug_mode) {
+                    printf(" ------------------------- ");
+                    printf("\n| GENERANDO CÓDIGO OBJETO |");
+                    printf("\n ------------------------- \n");
+                }
                 
                 int obj_result = generate_object_code("inter.ir", "output.s");
                 
                 if (obj_result == 0) {
-                    printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                    if (debug_mode) {
+                        printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                    } else {
+                        printf("✓ Generación de código objeto completado exitosamente.\n");
+                    }
                 } else {
                     printf("X ERROR en la generación de código objeto.\n\n");
                 }
@@ -393,13 +410,21 @@ int main(int argc, char **argv) {
                 return ir_result;
             }
         } else {
-            printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            if (debug_mode) {
+                printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            } else {
+                printf("✗ Compilación fallida: errores en análisis semántico.\n");
+            }
             nodo_libre(ast);
             free_symtab();
             return semantic_result;
         }
     } else {
-        printf("Análisis sintáctico fallido.\n");
+        if (debug_mode) {
+            printf("Análisis sintáctico fallido.\n");
+        } else {
+            printf("✗ Análisis sintáctico fallido.\n");
+        }
         free_symtab();
         return 1;
     }

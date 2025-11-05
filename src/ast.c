@@ -524,9 +524,13 @@ void generar_png_ast(Nodo *ast) {
 
     int ret = system("dot -Tpng ast.dot -o ast_tree.png");
     if (ret != 0) {
-        fprintf(stderr, "Error: No se pudo generar PNG. Asegúrate de tener Graphviz instalado y 'dot' en PATH.\n");
+        if (debug_mode) {
+            fprintf(stderr, "Error: No se pudo generar PNG. Asegúrate de tener Graphviz instalado y 'dot' en PATH.\n");
+        }
     } else {
-        printf("\nAST generado como 'ast_tree.png'.\n");
+        if (debug_mode) {
+            printf("\nAST generado como 'ast_tree.png'.\n");
+        }
     }
 }
 

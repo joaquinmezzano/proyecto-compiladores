@@ -18,7 +18,9 @@ extern Nodo *ast;
  */
 int semantic_analysis(Nodo *ast_root) {
     if (!ast_root) {
-        printf("Error: AST vacío para análisis semántico\n");
+        if (debug_mode) {
+            printf("Error: AST vacío para análisis semántico\n");
+        }
         return 1;
     }
     
@@ -28,10 +30,16 @@ int semantic_analysis(Nodo *ast_root) {
     verify_main_method();
     
     if (semantic_errors > 0) {
-        printf("\nX Análisis semántico FALLÓ con %d errores\n", semantic_errors);
+        if (debug_mode) {
+            printf("\nX Análisis semántico FALLÓ con %d errores\n", semantic_errors);
+        }
         return 1;
     } else {
-        printf("\n✓ Análisis semántico EXITOSO - sin errores\n");
+        if (debug_mode) {
+            printf("\n✓ Análisis semántico EXITOSO - sin errores\n");
+        } else {
+            printf("✓ Análisis semántico completado exitosamente.\n");
+        }
         return 0;
     }
 }
@@ -161,8 +169,10 @@ int verify_main_method() {
         return 0;
     }
     
-    printf("Debug: main válido con tipo %s, parámetros = %d\n",
-           return_type, param_count);
+    if (debug_mode) {
+        printf("Debug: main válido con tipo %s, parámetros = %d\n",
+               return_type, param_count);
+    }
     
     return 1;
 }

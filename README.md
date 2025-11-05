@@ -46,11 +46,12 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
 ### Ejecución
 
-    make run FILE=<archivo.ctds>
+    make run FILE=<archivo.ctds> [DEBUG=1]
 
 | Comando                   | Descripción                            | Ejemplo                                |
 | ------------------------- | -------------------------------------- | -------------------------------------- |
 | `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
+| `make run FILE=<archivo> DEBUG=1` | Ejecuta el compilador con un archivo en modo debug | `make run FILE=examples/example1.ctds DEBUG=1` |
 | `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
 | `make test-good`          | Ejecuta solo ejemplos válidos          | `make test-good`                       |
 | `make test-errors`        | Ejecuta ejemplos con errores esperados | `make test-errors`                     |

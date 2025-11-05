@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 
+/* Variable global para controlar el modo debug */
+extern int debug_mode;
+
 /*
  * Tipos de nodos 
  */

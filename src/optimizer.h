@@ -24,11 +24,7 @@ typedef struct {
 /*
  * Funciones principales de optimización
  */
-
-// Punto 3: Optimizaciones ad-hoc (peephole)
 void optimize_peephole(IRList *list);
-
-// Punto 4: Optimización de código intermedio
 void optimize_constant_folding(IRList *list);
 void optimize_constant_propagation(IRList *list);
 void optimize_dead_code_elimination(IRList *list);
@@ -49,8 +45,4 @@ void replace_instruction(IRList *list, int index, IRInstr new_op,
 void mark_instruction_as_nop(IRList *list, int index);
 void compact_ir_list(IRList *list);
 
-// Optimizaciones de assembler
-void optimize_assembly_redundant_moves(char **lines, int *line_count);
-void optimize_assembly_peephole(char **lines, int *line_count);
-
-#endif // OPTIMIZER_H
+#endif

@@ -4,11 +4,17 @@
 #include <string.h>
 #include <math.h>
 
-/* OPTIMIZACIONES AD-HOC (PEEPHOLE) */
+/*
+ * Verifica si un número es una potencia de 2.
+ */
 bool is_power_of_two(int n) {
     return n > 0 && (n & (n - 1)) == 0;
 }
 
+/*
+ * Calcula el logaritmo base 2 de un entero.
+ * Se usa para convertir divisiones por potencias de 2 en shifteos.
+ */
 int log2_int(int n) {
     int result = 0;
     while (n > 1) {
@@ -18,6 +24,9 @@ int log2_int(int n) {
     return result;
 }
 
+/*
+ * Determina si un símbolo representa un número.
+ */
 bool is_constant_symbol(IRSymbol *sym) {
     if (!sym || !sym->name) return false;
     return sym->type == IR_SYM_CONST || 
@@ -25,11 +34,17 @@ bool is_constant_symbol(IRSymbol *sym) {
            (sym->name[0] == '-' && sym->name[1] >= '0' && sym->name[1] <= '9');
 }
 
+/*
+ * Extrae el valor numérico de un símbolo constante.
+ */
 int get_constant_value(IRSymbol *sym) {
     if (!sym || !sym->name) return 0;
     return atoi(sym->name);
 }
 
+/*
+ * Reemplaza una instrucción completa en la lista de código intermedio.
+ */
 void replace_instruction(IRList *list, int index, IRInstr new_op,
                         IRSymbol *new_arg1, IRSymbol *new_arg2, IRSymbol *new_result) {
     if (index < 0 || index >= list->size) return;
@@ -41,6 +56,10 @@ void replace_instruction(IRList *list, int index, IRInstr new_op,
     code->result = new_result;
 }
 
+/*
+ * Marca una instrucción como no-operación (NOP)
+ * Convierte la instrucción a LABEL sin argumentos para eliminarla efectivamente.
+ */
 void mark_instruction_as_nop(IRList *list, int index) {
     if (index < 0 || index >= list->size) return;
     list->codes[index].op = IR_LABEL;
@@ -146,8 +165,6 @@ void optimize_peephole(IRList *list) {
         printf("✓ Optimización peephole: %d transformaciones aplicadas\n", optimizations);
     }
 }
-
-/* OPTIMIZACIONES DE CÓDIGO INTERMEDIO */
 
 /*
  * Constant folding: evaluar operaciones con constantes en tiempo de compilación
@@ -292,14 +309,13 @@ void optimize_constant_propagation(IRList *list) {
         }
     }
     
-    if (optimizations > 0) {
+    if (optimizations > 0 && debug_mode) {
         printf("✓ Propagación de constantes: %d reemplazos\n", optimizations);
     }
 }
 
 /*
- * Eliminación de código muerto
- * Elimina instrucciones cuyos resultados nunca se usan
+ * Eliminación de código muerto.
  */
 void optimize_dead_code_elimination(IRList *list) {
     int optimizations = 0;
@@ -371,7 +387,9 @@ void optimize_dead_code_elimination(IRList *list) {
                     code->op == IR_LE || code->op == IR_GT || code->op == IR_GE ||
                     (code->op == IR_LOAD && code->arg1->type == IR_SYM_CONST)) {
                     mark_instruction_as_nop(list, i);
-                    printf("  [DEAD CODE] Línea %d: instrucción eliminada (resultado no usado)\n", i);
+                    if (debug_mode) {
+                        printf("  [DEAD CODE] Línea %d: instrucción eliminada (resultado no usado)\n", i);
+                    }
                     optimizations++;
                 }
             }
@@ -380,13 +398,13 @@ void optimize_dead_code_elimination(IRList *list) {
     
     free(is_used);
     
-    if (optimizations > 0) {
+    if (optimizations > 0 && debug_mode) {
         printf("✓ Eliminación de código muerto: %d instrucciones eliminadas\n", optimizations);
     }
 }
 
 /*
- * Simplificación algebraica adicional
+ * Simplificación algebraica adicional.
  */
 void optimize_algebraic_simplification(IRList *list) {
     int optimizations = 0;
@@ -422,7 +440,9 @@ void optimize_algebraic_simplification(IRList *list) {
  * Función principal que ejecuta todas las optimizaciones en orden
  */
 void optimize_ir_code(IRList *list) {
-    printf("\n=== INICIANDO OPTIMIZACIONES ===\n");
+    if (debug_mode) {
+        printf("\n=== INICIANDO OPTIMIZACIONES ===\n");
+    }
     
     // Fase 1: Constant Folding
     optimize_constant_folding(list);
@@ -439,5 +459,7 @@ void optimize_ir_code(IRList *list) {
     // Fase 5: Dead Code Elimination (al final)
     optimize_dead_code_elimination(list);
     
-    printf("=== OPTIMIZACIONES COMPLETADAS ===\n\n");
+    if (debug_mode) {
+        printf("=== OPTIMIZACIONES COMPLETADAS ===\n\n");
+    }
 }
