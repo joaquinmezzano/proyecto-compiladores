@@ -1,4 +1,5 @@
 #include "intermediate.h"
+#include "optimizer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -683,6 +684,7 @@ int generate_intermediate_code(Nodo *ast) {
         gen_code(ast, &ir_list);
     }
     
+    optimize_ir_code(&ir_list);
     ir_print(&ir_list);
     ir_save_to_file(&ir_list, "inter.ir");
     ir_free(&ir_list);

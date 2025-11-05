@@ -10,8 +10,8 @@ BISON = bison
 # Archivos fuente
 LEXER_SRC = src/lexico.l
 PARSER_SRC = src/sintaxis.y
-C_SOURCES = src/ast.c src/symtab.c src/semantics.c src/intermediate.c src/object.c
-HEADERS = src/ast.h src/symtab.h src/semantics.h src/intermediate.h src/object.h
+C_SOURCES = src/ast.c src/symtab.c src/semantics.c src/intermediate.c src/object.c src/optimizer.c
+HEADERS = src/ast.h src/symtab.h src/semantics.h src/intermediate.h src/object.h src/optimizer.o
 
 # Archivos generados
 LEXER_OUT = lex.yy.c
