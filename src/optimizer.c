@@ -69,104 +69,6 @@ void mark_instruction_as_nop(IRList *list, int index) {
 }
 
 /*
- * Optimización peephole principal para instrucciones IR
- * Transforma patrones específicos:
- * - x / 2^n  →  x >> n
- * - x * 2^n  →  x << n
- * - x + 0    →  x
- * - x * 1    →  x
- * - x * 0    →  0
- */
-void optimize_peephole(IRList *list) {
-    int optimizations = 0;
-    
-    for (int i = 0; i < list->size; i++) {
-        IRCode *code = &list->codes[i];
-        
-        // Optimización: DIV por potencias de 2 → SHIFT derecha
-        if (code->op == IR_DIV && is_constant_symbol(code->arg2)) {
-            int divisor = get_constant_value(code->arg2);
-            if (is_power_of_two(divisor)) {
-                int shift_amount = log2_int(divisor);
-                
-                // Cambiar DIV por un comentario que luego se traduce a SAR
-                printf("  [PEEPHOLE] Línea %d: DIV por %d → puede usar SAR %d\n", 
-                       i, divisor, shift_amount);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: MUL por potencias de 2 → SHIFT izquierda
-        else if (code->op == IR_MUL && is_constant_symbol(code->arg2)) {
-            int multiplier = get_constant_value(code->arg2);
-            if (is_power_of_two(multiplier)) {
-                int shift_amount = log2_int(multiplier);
-                
-                printf("  [PEEPHOLE] Línea %d: MUL por %d → puede usar SAL %d\n", 
-                       i, multiplier, shift_amount);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: x + 0 = x
-        else if (code->op == IR_ADD && is_constant_symbol(code->arg2)) {
-            int value = get_constant_value(code->arg2);
-            if (value == 0) {
-                // Cambiar ADD por LOAD (copiar arg1 a result)
-                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
-                printf("  [PEEPHOLE] Línea %d: x + 0 → x\n", i);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: x * 1 = x
-        else if (code->op == IR_MUL && is_constant_symbol(code->arg2)) {
-            int value = get_constant_value(code->arg2);
-            if (value == 1) {
-                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
-                printf("  [PEEPHOLE] Línea %d: x * 1 → x\n", i);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: x * 0 = 0
-        else if (code->op == IR_MUL && is_constant_symbol(code->arg2)) {
-            int value = get_constant_value(code->arg2);
-            if (value == 0) {
-                IRSymbol *zero = new_const_symbol(0, 0);
-                replace_instruction(list, i, IR_LOAD, zero, NULL, code->result);
-                printf("  [PEEPHOLE] Línea %d: x * 0 → 0\n", i);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: x - 0 = x
-        else if (code->op == IR_SUB && is_constant_symbol(code->arg2)) {
-            int value = get_constant_value(code->arg2);
-            if (value == 0) {
-                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
-                printf("  [PEEPHOLE] Línea %d: x - 0 → x\n", i);
-                optimizations++;
-            }
-        }
-        
-        // Optimización: 0 - x = -x (UMINUS)
-        else if (code->op == IR_SUB && is_constant_symbol(code->arg1)) {
-            int value = get_constant_value(code->arg1);
-            if (value == 0) {
-                replace_instruction(list, i, IR_UMINUS, code->arg2, NULL, code->result);
-                printf("  [PEEPHOLE] Línea %d: 0 - x → -x\n", i);
-                optimizations++;
-            }
-        }
-    }
-    
-    if (optimizations > 0) {
-        printf("✓ Optimización peephole: %d transformaciones aplicadas\n", optimizations);
-    }
-}
-
-/*
  * Constant folding para IR: evaluar operaciones con constantes en tiempo de compilación
  * Ejemplo: 2 + 3 → 5
  */
@@ -404,7 +306,8 @@ void optimize_dead_code_elimination(IRList *list) {
 }
 
 /*
- * Simplificación algebraica adicional para las IR.
+ * Simplificación algebraica para las IR.
+ * Incluye tanto optimizaciones algebraicas como patrones específicos.
  */
 void optimize_algebraic_simplification(IRList *list) {
     int optimizations = 0;
@@ -412,8 +315,77 @@ void optimize_algebraic_simplification(IRList *list) {
     for (int i = 0; i < list->size; i++) {
         IRCode *code = &list->codes[i];
         
+        // Optimización: DIV por potencias de 2 → SHIFT derecha
+        if (code->op == IR_DIV && is_constant_symbol(code->arg2)) {
+            int divisor = get_constant_value(code->arg2);
+            if (is_power_of_two(divisor)) {
+                int shift_amount = log2_int(divisor);
+                
+                // Cambiar DIV por un comentario que luego se traduce a SAR
+                printf("  [PEEPHOLE] Línea %d: DIV por %d → puede usar SAR %d\n", 
+                       i, divisor, shift_amount);
+                optimizations++;
+            }
+        }
+        
+        // Optimización: MUL por potencias de 2 → SHIFT izquierda
+        else if (code->op == IR_MUL && is_constant_symbol(code->arg2)) {
+            int multiplier = get_constant_value(code->arg2);
+            if (is_power_of_two(multiplier)) {
+                int shift_amount = log2_int(multiplier);
+                
+                printf("  [PEEPHOLE] Línea %d: MUL por %d → puede usar SAL %d\n", 
+                       i, multiplier, shift_amount);
+                optimizations++;
+            }
+            // Optimización: x * 1 = x
+            else if (multiplier == 1) {
+                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
+                printf("  [PEEPHOLE] Línea %d: x * 1 → x\n", i);
+                optimizations++;
+            }
+            // Optimización: x * 0 = 0
+            else if (multiplier == 0) {
+                IRSymbol *zero = new_const_symbol(0, 0);
+                replace_instruction(list, i, IR_LOAD, zero, NULL, code->result);
+                printf("  [PEEPHOLE] Línea %d: x * 0 → 0\n", i);
+                optimizations++;
+            }
+        }
+        
+        // Optimización: x + 0 = x
+        else if (code->op == IR_ADD && is_constant_symbol(code->arg2)) {
+            int value = get_constant_value(code->arg2);
+            if (value == 0) {
+                // Cambiar ADD por LOAD (copiar arg1 a result)
+                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
+                printf("  [PEEPHOLE] Línea %d: x + 0 → x\n", i);
+                optimizations++;
+            }
+        }
+        
+        // Optimización: x - 0 = x
+        else if (code->op == IR_SUB && is_constant_symbol(code->arg2)) {
+            int value = get_constant_value(code->arg2);
+            if (value == 0) {
+                replace_instruction(list, i, IR_LOAD, code->arg1, NULL, code->result);
+                printf("  [PEEPHOLE] Línea %d: x - 0 → x\n", i);
+                optimizations++;
+            }
+        }
+        
+        // Optimización: 0 - x = -x (UMINUS)
+        else if (code->op == IR_SUB && is_constant_symbol(code->arg1)) {
+            int value = get_constant_value(code->arg1);
+            if (value == 0) {
+                replace_instruction(list, i, IR_UMINUS, code->arg2, NULL, code->result);
+                printf("  [PEEPHOLE] Línea %d: 0 - x → -x\n", i);
+                optimizations++;
+            }
+        }
+        
         // x - x = 0
-        if (code->op == IR_SUB && code->arg1 && code->arg2 &&
+        else if (code->op == IR_SUB && code->arg1 && code->arg2 &&
             strcmp(code->arg1->name, code->arg2->name) == 0) {
             IRSymbol *zero = new_const_symbol(0, 0);
             replace_instruction(list, i, IR_LOAD, zero, NULL, code->result);
@@ -520,13 +492,29 @@ Nodo *optimize_ast_constant_folding(Nodo *node) {
                         printf("  [AST FOLDING] %d op %d → %d\n", val1, val2, result_value);
                     }
                     
-                    // Convertir este nodo a un nodo INTEGER con el resultado
-                    node->tipo = NODO_INTEGER;
-                    node->val_int = result_value;
-                    // No liberamos los nodos hijo aquí para evitar problemas de memoria
-                    // El garbage collector se encargará
+                    // Limpiar los punteros primero
                     node->opBinaria.izq = NULL;
                     node->opBinaria.der = NULL;
+                    
+                    // Determinar el tipo de resultado según la operación
+                    bool is_boolean_op = (node->opBinaria.op == TOP_COMP || 
+                                        node->opBinaria.op == TOP_DESIGUAL ||
+                                        node->opBinaria.op == TOP_MENOR ||
+                                        node->opBinaria.op == TOP_MAYOR ||
+                                        node->opBinaria.op == TOP_MENORIG ||
+                                        node->opBinaria.op == TOP_MAYORIG ||
+                                        node->opBinaria.op == TOP_AND ||
+                                        node->opBinaria.op == TOP_OR);
+                    
+                    if (is_boolean_op) {
+                        // Convertir a BOOL para operaciones de comparación y lógicas
+                        node->tipo = NODO_BOOL;
+                        node->val_bool = result_value;
+                    } else {
+                        // Convertir a INTEGER para operaciones aritméticas
+                        node->tipo = NODO_INTEGER;
+                        node->val_int = result_value;
+                    }
                 }
             }
             break;
@@ -538,6 +526,12 @@ Nodo *optimize_ast_constant_folding(Nodo *node) {
             break;
             
         case NODO_ASSIGN:
+            if (node->assign.expr) {
+                node->assign.expr = optimize_ast_constant_folding(node->assign.expr);
+            }
+            break;
+            
+        case NODO_DECL:
             if (node->assign.expr) {
                 node->assign.expr = optimize_ast_constant_folding(node->assign.expr);
             }
@@ -610,10 +604,57 @@ Nodo *optimize_ast_algebraic_simplification(Nodo *node) {
             Nodo *izq = node->opBinaria.izq;
             Nodo *der = node->opBinaria.der;
             
-            // x * 0 = 0 (más seguro procesar esto primero)
+            // x + 0 = x
+            if (node->opBinaria.op == TOP_SUMA) {
+                if (der && der->tipo == NODO_INTEGER && der->val_int == 0) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] x + 0 → x\n");
+                    }
+                    // Reemplazar el nodo con el operando izquierdo
+                    *node = *izq;
+                    return node;
+                } else if (izq && izq->tipo == NODO_INTEGER && izq->val_int == 0) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] 0 + x → x\n");
+                    }
+                    // Reemplazar el nodo con el operando derecho
+                    *node = *der;
+                    return node;
+                }
+            }
+            
+            // x - 0 = x
+            if (node->opBinaria.op == TOP_RESTA) {
+                if (der && der->tipo == NODO_INTEGER && der->val_int == 0) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] x - 0 → x\n");
+                    }
+                    // Reemplazar el nodo con el operando izquierdo
+                    *node = *izq;
+                    return node;
+                }
+            }
+            
+            // x * 1 = x
             if (node->opBinaria.op == TOP_MULT) {
-                if ((der && der->tipo == NODO_INTEGER && der->val_int == 0) ||
-                    (izq && izq->tipo == NODO_INTEGER && izq->val_int == 0)) {
+                if (der && der->tipo == NODO_INTEGER && der->val_int == 1) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] x * 1 → x\n");
+                    }
+                    // Reemplazar el nodo con el operando izquierdo
+                    *node = *izq;
+                    return node;
+                } else if (izq && izq->tipo == NODO_INTEGER && izq->val_int == 1) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] 1 * x → x\n");
+                    }
+                    // Reemplazar el nodo con el operando derecho
+                    *node = *der;
+                    return node;
+                }
+                // x * 0 = 0
+                else if ((der && der->tipo == NODO_INTEGER && der->val_int == 0) ||
+                         (izq && izq->tipo == NODO_INTEGER && izq->val_int == 0)) {
                     if (debug_mode) {
                         printf("  [AST ALGEBRAIC] x * 0 → 0\n");
                     }
@@ -621,6 +662,19 @@ Nodo *optimize_ast_algebraic_simplification(Nodo *node) {
                     node->val_int = 0;
                     node->opBinaria.izq = NULL;
                     node->opBinaria.der = NULL;
+                    return node;
+                }
+            }
+            
+            // x / 1 = x
+            if (node->opBinaria.op == TOP_DIV) {
+                if (der && der->tipo == NODO_INTEGER && der->val_int == 1) {
+                    if (debug_mode) {
+                        printf("  [AST ALGEBRAIC] x / 1 → x\n");
+                    }
+                    // Reemplazar el nodo con el operando izquierdo
+                    *node = *izq;
+                    return node;
                 }
             }
             break;
@@ -632,6 +686,12 @@ Nodo *optimize_ast_algebraic_simplification(Nodo *node) {
             break;
             
         case NODO_ASSIGN:
+            if (node->assign.expr) {
+                node->assign.expr = optimize_ast_algebraic_simplification(node->assign.expr);
+            }
+            break;
+            
+        case NODO_DECL:
             if (node->assign.expr) {
                 node->assign.expr = optimize_ast_algebraic_simplification(node->assign.expr);
             }
@@ -693,7 +753,6 @@ void optimize_ir_code(IRList *list) {
     
     optimize_constant_folding(list);
     optimize_constant_propagation(list);
-    optimize_peephole(list);
     optimize_algebraic_simplification(list);
     optimize_dead_code_elimination(list);
     

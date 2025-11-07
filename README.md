@@ -75,4 +75,4 @@ make run FILE=examples/example1.ctds OPTIMIZER=1
 
 Las optimizaciones incluyen:
 - **AST**: Constant folding, algebraic simplification
-- **IR**: Constant folding, Peephole, algebraic simplification, constant propagation, dead code elimination
+- **IR**: Constant folding, algebraic simplification, constant propagation, dead code elimination

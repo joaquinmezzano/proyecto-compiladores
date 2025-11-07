@@ -181,7 +181,14 @@ Nodo *nodo_method(char *nombre, Nodo *params, Nodo *body) {
     n->method.params = params;
     n->method.body = body;
 
-    if (params) params->padre = n;
+    // Asignar padre a todos los parámetros en la cadena
+    if (params) {
+        Nodo *param = params;
+        while (param) {
+            param->padre = n;
+            param = param->siguiente;
+        }
+    }
     if (body) body->padre = n;
     
     return n;

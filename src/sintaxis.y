@@ -123,7 +123,14 @@ decl
 
 var_decl_list
     : /* empty */            { $$ = NULL; }
-    | var_decl_list var_decl { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
+    | var_decl_list var_decl { 
+        $$ = $1 ? $1 : $2; 
+        if ($1) {
+            Nodo *last = $1;
+            while (last->siguiente) last = last->siguiente;
+            last->siguiente = $2;
+        }
+    }
     ;
 
 var_decl
@@ -244,7 +251,14 @@ block
 
 statement_list
     : /* empty */              { $$ = NULL; }
-    | statement_list statement { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
+    | statement_list statement { 
+        $$ = $1 ? $1 : $2; 
+        if ($1) {
+            Nodo *last = $1;
+            while (last->siguiente) last = last->siguiente;
+            last->siguiente = $2;
+        }
+    }
     ;
 
 statement
@@ -393,20 +407,9 @@ int main(int argc, char **argv) {
     if (yyparse() == 0) {
         if (debug_mode) {
             printf("Análisis sintáctico completado sin errores.\n");
-            printf("\n ----------------------------------");
-            printf("\n| Árbol Sintáctico Abstracto (AST) |");
-            printf("\n ----------------------------------\n");
-
-            imprimir_nodo(ast, 0);
-            generar_png_ast(ast);
-
-            print_symtab();
         } else {
             printf("✓ Análisis sintáctico completado exitosamente.\n");
-            generar_png_ast(ast);
         }
-        
-
         
         if (debug_mode) {
             printf(" ------------------------------");
@@ -424,6 +427,22 @@ int main(int argc, char **argv) {
             if (debug_mode) {
                 printf("✓ Optimizaciones del AST deshabilitadas.\n");
             }
+        }
+        
+        if (debug_mode) {
+            printf("\n ----------------------------------");
+            printf("\n| Árbol Sintáctico Abstracto (AST) |");
+            if (optimizer_enabled) {
+                printf("\n|        (POST-OPTIMIZACIÓN)       |");
+            }
+            printf("\n ----------------------------------\n");
+
+            imprimir_nodo(ast, 0);
+            generar_png_ast(ast);
+
+            print_symtab();
+        } else {
+            generar_png_ast(ast);
         }
         
         int semantic_result = semantic_analysis(ast);
