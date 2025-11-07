@@ -73,10 +73,11 @@ rebuild: clean all
 .PHONY: run
 run: $(EXECUTABLE)
 	@if [ -z "$(FILE)" ]; then \
-		echo "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>]"; \
+		echo "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]"; \
 		echo "Ejemplo: make run FILE=examples/example1.ctds"; \
 		echo "Con debug: make run FILE=examples/example1.ctds DEBUG=1"; \
 		echo "Con target: make run FILE=examples/example1.ctds TARGET=semantic"; \
+		echo "Con optimizaciones: make run FILE=examples/example1.ctds OPTIMIZER=1"; \
 		echo "Etapas: syntax/semantic, ir, object (default), all"; \
 		exit 1; \
 	fi
@@ -94,8 +95,10 @@ run: $(EXECUTABLE)
 		echo "--------------------------------------------------"; \
 		echo ""; \
 		TARGET_ARG=""; \
+		OPTIMIZER_ARG=""; \
 		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
-		if ./$(EXECUTABLE) -debug $$TARGET_ARG < "$(FILE)"; then \
+		if [ "$(OPTIMIZER)" = "1" ]; then OPTIMIZER_ARG="-optimizer"; fi; \
+		if ./$(EXECUTABLE) -debug $$TARGET_ARG $$OPTIMIZER_ARG < "$(FILE)"; then \
 			echo " --------------------------- "; \
 			echo "| Reporte final del programa |"; \
 			echo " --------------------------- "; \
@@ -132,8 +135,10 @@ run: $(EXECUTABLE)
 			echo "==> Ejecutando compilación de $(FILE)..."; \
 		fi; \
 		TARGET_ARG=""; \
+		OPTIMIZER_ARG=""; \
 		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
-		if ./$(EXECUTABLE) $$TARGET_ARG < "$(FILE)"; then \
+		if [ "$(OPTIMIZER)" = "1" ]; then OPTIMIZER_ARG="-optimizer"; fi; \
+		if ./$(EXECUTABLE) $$TARGET_ARG $$OPTIMIZER_ARG < "$(FILE)"; then \
 			echo "✓ Compilación exitosa: $(FILE)"; \
 			if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
 			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
@@ -198,10 +203,11 @@ help:
 	@echo "  rebuild         - Limpiar y recompilar desde cero"
 	@echo "  check-sources   - Verificar que existan todos los archivos fuente"
 	@echo ""
-	@echo "  run FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] - Ejecutar el compilador"
+	@echo "  run FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1] - Ejecutar el compilador"
 	@echo "                                Ejemplo: make run FILE=examples/example1.ctds"
 	@echo "                                Con debug: make run FILE=examples/example1.ctds DEBUG=1"
 	@echo "                                Con target: make run FILE=examples/example1.ctds TARGET=ir"
+	@echo "                                Con optimizaciones: make run FILE=examples/example1.ctds OPTIMIZER=1"
 	@echo ""
 	@echo "  Etapas disponibles (TARGET):"
 	@echo "    syntax/semantic - Hasta análisis semántico + AST optimizado"

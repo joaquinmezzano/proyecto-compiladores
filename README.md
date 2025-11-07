@@ -46,13 +46,14 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
 ### Ejecución
 
-    make run FILE=<archivo.ctds> [DEBUG=1] [TARGET=<etapa>]
+    make run FILE=<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]
 
 | Comando                   | Descripción                            | Ejemplo                                |
 | ------------------------- | -------------------------------------- | -------------------------------------- |
 | `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
 | `make run FILE=<archivo> DEBUG=1` | Ejecuta en modo debug (output detallado) | `make run FILE=examples/example1.ctds DEBUG=1` |
 | `make run FILE=<archivo> TARGET=<etapa>` | Compila hasta etapa específica | `make run FILE=examples/example1.ctds TARGET=ir` |
+| `make run FILE=<archivo> OPTIMIZER=1` | Habilita optimizaciones | `make run FILE=examples/example1.ctds OPTIMIZER=1` |
 | `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
 | `make help`               | Muestra ayuda completa                  | `make help`                            |
 
@@ -60,6 +61,18 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
 | Etapa | Hasta donde compila | Archivos generados |
 |-------|--------------------|--------------------|
-| `syntax`/`semantic` | Análisis semántico + AST optimizado | `ast_tree.png` |
-| `ir` | Código intermedio + optimizaciones IR | `ast_tree.png`, `inter.ir` |
+| `syntax`/`semantic` | Análisis semántico + AST (optimizado con `-optimizer`) | `ast_tree.png` |
+| `ir` | Código intermedio (optimizado con `-optimizer`) | `ast_tree.png`, `inter.ir` |
 | `object`/`all` | Compilación completa (default) | `ast_tree.png`, `inter.ir`, `output.s` |
+
+## Optimizaciones
+
+Las optimizaciones están **deshabilitadas por defecto**. Para habilitarlas, use el flag `OPTIMIZER=1`:
+
+```bash
+make run FILE=examples/example1.ctds OPTIMIZER=1
+```
+
+Las optimizaciones incluyen:
+- **AST**: Constant folding, algebraic simplification
+- **IR**: Constant folding, Peephole, algebraic simplification, constant propagation, dead code elimination

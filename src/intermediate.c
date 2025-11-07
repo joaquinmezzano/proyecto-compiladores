@@ -688,7 +688,18 @@ int generate_intermediate_code(Nodo *ast) {
         gen_code(ast, &ir_list);
     }
     
-    optimize_ir_code(&ir_list);
+    // Aplicar optimizaciones al código intermedio solo si están habilitadas
+    if (optimizer_enabled) {
+        if (debug_mode) {
+            printf("✓ Optimizaciones del código intermedio habilitadas.\n");
+        }
+        optimize_ir_code(&ir_list);
+    } else {
+        if (debug_mode) {
+            printf("✓ Optimizaciones del código intermedio deshabilitadas.\n");
+        }
+    }
+    
     if (debug_mode) {
         ir_print(&ir_list);
     }

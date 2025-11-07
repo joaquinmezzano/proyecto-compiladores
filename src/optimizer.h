@@ -5,6 +5,11 @@
 #include <stdbool.h>
 
 /*
+ * Variable global para controlar si las optimizaciones están habilitadas
+ */
+extern int optimizer_enabled;
+
+/*
  * Estructura para análisis de uso de variables
  */
 typedef struct {
@@ -33,7 +38,6 @@ void optimize_algebraic_simplification(IRList *list);
 
 // Funciones para AST
 Nodo *optimize_ast_constant_folding(Nodo *node);
-Nodo *optimize_ast_dead_code_elimination(Nodo *node);
 Nodo *optimize_ast_algebraic_simplification(Nodo *node);
 
 // Funciones para ejecutar las optimizaciones

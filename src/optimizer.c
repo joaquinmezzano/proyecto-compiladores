@@ -682,97 +682,6 @@ Nodo *optimize_ast_algebraic_simplification(Nodo *node) {
     return node;
 }
 
-/*
- * Eliminación de código muerto en el AST.
- */
-Nodo *optimize_ast_dead_code_elimination(Nodo *node) {
-    if (!node) return NULL;
-    
-    // Procesar nodos hijo según el tipo
-    switch (node->tipo) {
-        case NODO_METHOD:
-            if (node->method.body) {
-                node->method.body = optimize_ast_dead_code_elimination(node->method.body);
-                
-                // Si el cuerpo tiene un return, marcar código muerto después
-                Nodo *current = node->method.body;
-                while (current) {
-                    if (current->tipo == NODO_RETURN) {
-                        // Si hay código después del return, reportarlo
-                        if (current->siguiente) {
-                            if (debug_mode) {
-                                printf("  [AST DEAD CODE] Código después de return detectado\n");
-                            }
-                            // Por seguridad, solo marcamos que hay código muerto
-                            // pero no lo eliminamos para evitar problemas de memoria
-                        }
-                        break;
-                    }
-                    current = current->siguiente;
-                }
-            }
-            break;
-            
-        case NODO_RETURN:
-            if (node->ret_expr) {
-                node->ret_expr = optimize_ast_dead_code_elimination(node->ret_expr);
-            }
-            break;
-            
-        case NODO_ASSIGN:
-            if (node->assign.expr) {
-                node->assign.expr = optimize_ast_dead_code_elimination(node->assign.expr);
-            }
-            break;
-            
-        case NODO_OP:
-            if (node->opBinaria.izq) {
-                node->opBinaria.izq = optimize_ast_dead_code_elimination(node->opBinaria.izq);
-            }
-            if (node->opBinaria.der) {
-                node->opBinaria.der = optimize_ast_dead_code_elimination(node->opBinaria.der);
-            }
-            break;
-            
-        case NODO_METHOD_CALL:
-            if (node->method_call.args) {
-                node->method_call.args = optimize_ast_dead_code_elimination(node->method_call.args);
-            }
-            break;
-            
-        case NODO_IF:
-            if (node->if_stmt.cond) {
-                node->if_stmt.cond = optimize_ast_dead_code_elimination(node->if_stmt.cond);
-            }
-            if (node->if_stmt.then_block) {
-                node->if_stmt.then_block = optimize_ast_dead_code_elimination(node->if_stmt.then_block);
-            }
-            if (node->if_stmt.else_block) {
-                node->if_stmt.else_block = optimize_ast_dead_code_elimination(node->if_stmt.else_block);
-            }
-            break;
-            
-        case NODO_WHILE:
-            if (node->while_stmt.cond) {
-                node->while_stmt.cond = optimize_ast_dead_code_elimination(node->while_stmt.cond);
-            }
-            if (node->while_stmt.body) {
-                node->while_stmt.body = optimize_ast_dead_code_elimination(node->while_stmt.body);
-            }
-            break;
-            
-        default:
-            break;
-    }
-    
-    // Procesar el nodo siguiente si existe
-    if (node->siguiente) {
-        node->siguiente = optimize_ast_dead_code_elimination(node->siguiente);
-    }
-    
-    return node;
-}
-
 
 /*
  * Función principal que ejecuta todas las optimizaciones para el IR
@@ -805,7 +714,6 @@ Nodo *optimize_ast(Nodo *ast_root) {
     
     ast_root = optimize_ast_constant_folding(ast_root);
     ast_root = optimize_ast_algebraic_simplification(ast_root);
-    ast_root = optimize_ast_dead_code_elimination(ast_root);
     
     if (debug_mode) {
         printf("=== OPTIMIZACIONES DEL AST COMPLETADAS ===\n\n");

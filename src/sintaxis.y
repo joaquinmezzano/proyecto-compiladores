@@ -23,6 +23,7 @@ int yylex(void);
 
 Nodo *ast = NULL;
 int debug_mode = 0;
+int optimizer_enabled = 0;
 typedef enum {
     TARGET_SEMANTIC,    // Hasta análisis semántico (incluye AST + optimizaciones)
     TARGET_IR,          // Hasta código intermedio
@@ -360,6 +361,8 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-debug") == 0) {
             debug_mode = 1;
+        } else if (strcmp(argv[i], "-optimizer") == 0) {
+            optimizer_enabled = 1;
         } else if (strcmp(argv[i], "-target") == 0) {
             if (i + 1 < argc) {
                 i++; // Avanzar al siguiente argumento
@@ -411,8 +414,17 @@ int main(int argc, char **argv) {
             printf("\n ------------------------------\n");
         }
         
-        // Aplicar optimizaciones al AST antes del análisis semántico
-        ast = optimize_ast(ast);
+        // Aplicar optimizaciones al AST solo si están habilitadas
+        if (optimizer_enabled) {
+            if (debug_mode) {
+                printf("✓ Optimizaciones del AST habilitadas.\n");
+            }
+            ast = optimize_ast(ast);
+        } else {
+            if (debug_mode) {
+                printf("✓ Optimizaciones del AST deshabilitadas.\n");
+            }
+        }
         
         int semantic_result = semantic_analysis(ast);
         
