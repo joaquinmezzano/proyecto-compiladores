@@ -1,4 +1,5 @@
 #include "intermediate.h"
+#include "optimizer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -641,7 +642,9 @@ void ir_save_to_file(IRList *list, const char *filename) {
     }
     
     fclose(file);
-    printf("Código intermedio guardado en: %s\n", filename);
+    if (debug_mode) {
+        printf("Código intermedio guardado en: %s\n", filename);
+    }
 }
 
 /*
@@ -669,9 +672,11 @@ int generate_intermediate_code(Nodo *ast) {
     IRList ir_list;
     ir_init(&ir_list);
     
-    printf("\n ---------------------------- ");
-    printf("\n| GENERANDO CÓDIGO INTERMEDIO |");
-    printf("\n ---------------------------- \n");
+    if (debug_mode) {
+        printf("\n ---------------------------- ");
+        printf("\n| GENERANDO CÓDIGO INTERMEDIO |");
+        printf("\n ---------------------------- \n");
+    }
     
     if (ast->tipo == NODO_ID && strcmp(ast->nombre, "program") == 0) {
         Nodo *current = ast->siguiente;
@@ -683,10 +688,28 @@ int generate_intermediate_code(Nodo *ast) {
         gen_code(ast, &ir_list);
     }
     
-    ir_print(&ir_list);
+    // Aplicar optimizaciones al código intermedio solo si están habilitadas
+    if (optimizer_enabled) {
+        if (debug_mode) {
+            printf("✓ Optimizaciones del código intermedio habilitadas.\n");
+        }
+        optimize_ir_code(&ir_list);
+    } else {
+        if (debug_mode) {
+            printf("✓ Optimizaciones del código intermedio deshabilitadas.\n");
+        }
+    }
+    
+    if (debug_mode) {
+        ir_print(&ir_list);
+    }
     ir_save_to_file(&ir_list, "inter.ir");
     ir_free(&ir_list);
     
-    printf("✓ Generación de código intermedio completado exitosamente.\n\n");
+    if (debug_mode) {
+        printf("✓ Generación de código intermedio completado exitosamente.\n\n");
+    } else {
+        printf("✓ Generación de código intermedio completado exitosamente.\n");
+    }
     return 0;
 }

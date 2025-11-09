@@ -1,0 +1,30 @@
+program {
+    // Fibonacci recursivo
+    integer fibonacci_recursive(integer n) {
+        if (n <= 1) then {
+            return n;
+        } else {
+            return fibonacci_recursive(n - 1) + fibonacci_recursive(n - 2);
+        }
+    }
+    
+    integer get_int() extern;
+    void print_int(integer i) extern;
+    
+    void main() {
+        integer n = 0;
+        integer result = 0;
+        
+        // Leer el número para calcular fibonacci
+        n = get_int();
+        
+        // Calcular fibonacci de forma recursiva
+        if (n >= 0) then {
+            result = fibonacci_recursive(n);
+            print_int(result);
+        } else {
+            // Error para números negativos
+            print_int(-1);
+        }
+    }
+}

@@ -1,0 +1,20 @@
+program {
+    void main() {
+        // Constant folding IR: operaciones con constantes
+        integer a = 5;
+        integer b = 3;
+        integer c = a + b;  // Debería propagarse y optimizarse
+        
+        // Constant propagation: reemplazar variables por valores
+        integer x = 10;
+        integer y = x;      // y debería ser reemplazado por 10
+        integer z = y + 5;  // Debería ser 10 + 5 = 15
+        
+        // Dead code: variable nunca usada
+        integer unused = 42;
+        
+        // Algebraic simplification IR  
+        integer w = z - z;    // Debería ser 0
+        integer v = w + 0;    // Debería ser w (que es 0)
+    }
+}

@@ -21,7 +21,7 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 | ~~`analizador-semantico`~~         | 15/09/2025 | 01/10/2025 |
 | ~~`codigo-intermedio`~~            | 01/10/2025 | 08/10/2025 |
 | ~~`codigo-objeto`~~                | 08/10/2025 | 27/10/2025 |
-| `optimizador`                      | 27/10/2025 | 12/11/2025 |
+| ~~`optimizador`~~                  | 27/10/2025 | 12/11/2025 |
 | `entrega-final`                    | -          | 15/11/2025 |
 
 **Comentario:** La rama `main` contiene la versión estable del proyecto. Se actualiza con merges de cada etapa.
@@ -46,11 +46,33 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
 ### Ejecución
 
-    make run FILE=<archivo.ctds>
+    make run FILE=<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]
 
 | Comando                   | Descripción                            | Ejemplo                                |
 | ------------------------- | -------------------------------------- | -------------------------------------- |
 | `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
+| `make run FILE=<archivo> DEBUG=1` | Ejecuta en modo debug (output detallado) | `make run FILE=examples/example1.ctds DEBUG=1` |
+| `make run FILE=<archivo> TARGET=<etapa>` | Compila hasta etapa específica | `make run FILE=examples/example1.ctds TARGET=ir` |
+| `make run FILE=<archivo> OPTIMIZER=1` | Habilita optimizaciones | `make run FILE=examples/example1.ctds OPTIMIZER=1` |
 | `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
-| `make test-good`          | Ejecuta solo ejemplos válidos          | `make test-good`                       |
-| `make test-errors`        | Ejecuta ejemplos con errores esperados | `make test-errors`                     |
+| `make help`               | Muestra ayuda completa                  | `make help`                            |
+
+## Etapas de compilación (TARGET)
+
+| Etapa | Hasta donde compila | Archivos generados |
+|-------|--------------------|--------------------|
+| `syntax`/`semantic` | Análisis semántico + AST (optimizado con `-optimizer`) | `ast_tree.png` |
+| `ir` | Código intermedio (optimizado con `-optimizer`) | `ast_tree.png`, `inter.ir` |
+| `object`/`all` | Compilación completa (default) | `ast_tree.png`, `inter.ir`, `output.s` |
+
+## Optimizaciones
+
+Las optimizaciones están **deshabilitadas por defecto**. Para habilitarlas, use el flag `OPTIMIZER=1`:
+
+```bash
+make run FILE=examples/example1.ctds OPTIMIZER=1
+```
+
+Las optimizaciones incluyen:
+- **AST**: Constant folding, algebraic simplification
+- **IR**: Constant folding, algebraic simplification, constant propagation, dead code elimination

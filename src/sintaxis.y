@@ -10,6 +10,7 @@
 #include "semantics.h"
 #include "intermediate.h"
 #include "object.h"
+#include "optimizer.h"
 
 /*
  * Declarar variables del lexer
@@ -21,6 +22,16 @@ void yyerror(const char *s);
 int yylex(void);
 
 Nodo *ast = NULL;
+int debug_mode = 0;
+int optimizer_enabled = 0;
+typedef enum {
+    TARGET_SEMANTIC,    // Hasta análisis semántico (incluye AST + optimizaciones)
+    TARGET_IR,          // Hasta código intermedio
+    TARGET_OBJECT,      // Hasta código objeto (completo)
+    TARGET_ALL          // Alias para TARGET_OBJECT
+} target_stage_t;
+
+target_stage_t target_stage = TARGET_ALL;
 %}
 
 /*
@@ -112,7 +123,14 @@ decl
 
 var_decl_list
     : /* empty */            { $$ = NULL; }
-    | var_decl_list var_decl { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
+    | var_decl_list var_decl { 
+        $$ = $1 ? $1 : $2; 
+        if ($1) {
+            Nodo *last = $1;
+            while (last->siguiente) last = last->siguiente;
+            last->siguiente = $2;
+        }
+    }
     ;
 
 var_decl
@@ -233,7 +251,14 @@ block
 
 statement_list
     : /* empty */              { $$ = NULL; }
-    | statement_list statement { $$ = $1 ? $1 : $2; if ($1) $1->siguiente = $2; }
+    | statement_list statement { 
+        $$ = $1 ? $1 : $2; 
+        if ($1) {
+            Nodo *last = $1;
+            while (last->siguiente) last = last->siguiente;
+            last->siguiente = $2;
+        }
+    }
     ;
 
 statement
@@ -346,40 +371,124 @@ void yyerror(const char *s) {
 }
 
 int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+    // Parsear argumentos de línea de comandos
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-debug") == 0) {
+            debug_mode = 1;
+        } else if (strcmp(argv[i], "-optimizer") == 0) {
+            optimizer_enabled = 1;
+        } else if (strcmp(argv[i], "-target") == 0) {
+            if (i + 1 < argc) {
+                i++; // Avanzar al siguiente argumento
+                if (strcmp(argv[i], "syntax") == 0 || strcmp(argv[i], "semantic") == 0) {
+                    target_stage = TARGET_SEMANTIC;
+                } else if (strcmp(argv[i], "ir") == 0) {
+                    target_stage = TARGET_IR;
+                } else if (strcmp(argv[i], "object") == 0 || strcmp(argv[i], "all") == 0) {
+                    target_stage = TARGET_OBJECT;
+                } else {
+                    fprintf(stderr, "Error: etapa desconocida '%s'\n", argv[i]);
+                    fprintf(stderr, "Etapas válidas:\n");
+                    fprintf(stderr, "  syntax/semantic - Análisis sintáctico y semántico + AST (con optimizaciones)\n");
+                    fprintf(stderr, "  ir              - Hasta código intermedio (incluye optimizaciones IR)\n");
+                    fprintf(stderr, "  object          - Compilación completa hasta código objeto\n");
+                    fprintf(stderr, "  all             - Alias para 'object' (por defecto)\n");
+                    return 1;
+                }
+            } else {
+                fprintf(stderr, "Error: -target requiere una etapa (syntax, semantic, ir, object, all)\n");
+                return 1;
+            }
+        }
+    }
     
     init_symtab();
 
     if (yyparse() == 0) {
-        printf("Análisis sintáctico completado sin errores.\n");
-        printf("\n ----------------------------------");
-        printf("\n| Árbol Sintáctico Abstracto (AST) |");
-        printf("\n ----------------------------------\n");
+        if (debug_mode) {
+            printf("Análisis sintáctico completado sin errores.\n");
+        } else {
+            printf("✓ Análisis sintáctico completado exitosamente.\n");
+        }
+        
+        if (debug_mode) {
+            printf(" ------------------------------");
+            printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
+            printf("\n ------------------------------\n");
+        }
+        
+        // Aplicar optimizaciones al AST solo si están habilitadas
+        if (optimizer_enabled) {
+            if (debug_mode) {
+                printf("✓ Optimizaciones del AST habilitadas.\n");
+            }
+            ast = optimize_ast(ast);
+        } else {
+            if (debug_mode) {
+                printf("✓ Optimizaciones del AST deshabilitadas.\n");
+            }
+        }
+        
+        if (debug_mode) {
+            printf("\n ----------------------------------");
+            printf("\n| Árbol Sintáctico Abstracto (AST) |");
+            if (optimizer_enabled) {
+                printf("\n|        (POST-OPTIMIZACIÓN)       |");
+            }
+            printf("\n ----------------------------------\n");
 
-        imprimir_nodo(ast, 0);
-        generar_png_ast(ast);
+            imprimir_nodo(ast, 0);
+            generar_png_ast(ast);
 
-        print_symtab();
-
-        printf(" ------------------------------");
-        printf("\n| INICIANDO ANÁLISIS SEMÁNTICO |");
-        printf("\n ------------------------------\n");
+            print_symtab();
+        } else {
+            generar_png_ast(ast);
+        }
         
         int semantic_result = semantic_analysis(ast);
         
-        if (semantic_result == 0) {          
+        if (semantic_result == 0) {
+            // Si solo queremos análisis semántico
+            if (target_stage == TARGET_SEMANTIC) {
+                if (debug_mode) {
+                    printf("\n==> Compilación detenida en etapa: SEMANTIC\n");
+                } else {
+                    printf("✓ Compilación completada hasta: análisis semántico + AST optimizado.\n");
+                }
+                nodo_libre(ast);
+                free_symtab();
+                return 0;
+            }
+            
             int ir_result = generate_intermediate_code(ast);
             
             if (ir_result == 0) {
-                printf(" ------------------------- ");
-                printf("\n| GENERANDO CÓDIGO OBJETO |");
-                printf("\n ------------------------- \n");
+                // Si solo queremos código intermedio
+                if (target_stage == TARGET_IR) {
+                    if (debug_mode) {
+                        printf("\n==> Compilación detenida en etapa: IR\n");
+                    } else {
+                        printf("✓ Compilación completada hasta: código intermedio.\n");
+                    }
+                    nodo_libre(ast);
+                    free_symtab();
+                    return 0;
+                }
+                
+                if (debug_mode) {
+                    printf(" ------------------------- ");
+                    printf("\n| GENERANDO CÓDIGO OBJETO |");
+                    printf("\n ------------------------- \n");
+                }
                 
                 int obj_result = generate_object_code("inter.ir", "output.s");
                 
                 if (obj_result == 0) {
-                    printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                    if (debug_mode) {
+                        printf("✓ Generación de código objeto completado exitosamente.\n\n");
+                    } else {
+                        printf("✓ Generación de código objeto completado exitosamente.\n");
+                    }
                 } else {
                     printf("X ERROR en la generación de código objeto.\n\n");
                 }
@@ -393,13 +502,21 @@ int main(int argc, char **argv) {
                 return ir_result;
             }
         } else {
-            printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            if (debug_mode) {
+                printf("X COMPILACIÓN FALLIDA: Errores en análisis semántico.\n\n");
+            } else {
+                printf("✗ Compilación fallida: errores en análisis semántico.\n");
+            }
             nodo_libre(ast);
             free_symtab();
             return semantic_result;
         }
     } else {
-        printf("Análisis sintáctico fallido.\n");
+        if (debug_mode) {
+            printf("Análisis sintáctico fallido.\n");
+        } else {
+            printf("✗ Análisis sintáctico fallido.\n");
+        }
         free_symtab();
         return 1;
     }

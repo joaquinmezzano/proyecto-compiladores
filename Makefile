@@ -10,8 +10,8 @@ BISON = bison
 # Archivos fuente
 LEXER_SRC = src/lexico.l
 PARSER_SRC = src/sintaxis.y
-C_SOURCES = src/ast.c src/symtab.c src/semantics.c src/intermediate.c src/object.c
-HEADERS = src/ast.h src/symtab.h src/semantics.h src/intermediate.h src/object.h
+C_SOURCES = src/ast.c src/symtab.c src/semantics.c src/intermediate.c src/object.c src/optimizer.c
+HEADERS = src/ast.h src/symtab.h src/semantics.h src/intermediate.h src/object.h src/optimizer.o
 
 # Archivos generados
 LEXER_OUT = lex.yy.c
@@ -73,41 +73,86 @@ rebuild: clean all
 .PHONY: run
 run: $(EXECUTABLE)
 	@if [ -z "$(FILE)" ]; then \
-		echo "Uso: make run FILE=examples/<archivo.ctds>"; \
+		echo "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]"; \
 		echo "Ejemplo: make run FILE=examples/example1.ctds"; \
+		echo "Con debug: make run FILE=examples/example1.ctds DEBUG=1"; \
+		echo "Con target: make run FILE=examples/example1.ctds TARGET=semantic"; \
+		echo "Con optimizaciones: make run FILE=examples/example1.ctds OPTIMIZER=1"; \
+		echo "Etapas: syntax/semantic, ir, object (default), all"; \
 		exit 1; \
 	fi
 	@if [ ! -f "$(FILE)" ]; then \
 		echo "Error: el archivo '$(FILE)' no existe."; \
 		exit 1; \
 	fi
-	@echo "==> Ejecutando parser con análisis semántico en $(FILE)..."
-	@echo ""
-	@echo "--------------------------------------------------"
-	@echo ""
-	@if ./$(EXECUTABLE) < "$(FILE)"; then \
-		echo " --------------------------- "; \
-		echo "| Reporte final del programa |"; \
-		echo " --------------------------- "; \
+	@if [ "$(DEBUG)" = "1" ]; then \
+		if [ -n "$(TARGET)" ]; then \
+			echo "==> Ejecutando compilación de $(FILE) (modo debug, target: $(TARGET))..."; \
+		else \
+			echo "==> Ejecutando parser con análisis semántico en $(FILE) (modo debug)..."; \
+		fi; \
 		echo ""; \
-		echo "✓ Análisis completado exitosamente."; \
-		if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
-		if [ -f "sintaxis.output" ]; then echo "✓ Reporte de parser: sintaxis.output"; fi; \
-		if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
-		if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
-		echo "✓ Archivo analizado: $(FILE) ($$(wc -l < "$(FILE)" | xargs) líneas)"; \
+		echo "--------------------------------------------------"; \
 		echo ""; \
+		TARGET_ARG=""; \
+		OPTIMIZER_ARG=""; \
+		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
+		if [ "$(OPTIMIZER)" = "1" ]; then OPTIMIZER_ARG="-optimizer"; fi; \
+		if ./$(EXECUTABLE) -debug $$TARGET_ARG $$OPTIMIZER_ARG < "$(FILE)"; then \
+			echo " --------------------------- "; \
+			echo "| Reporte final del programa |"; \
+			echo " --------------------------- "; \
+			echo ""; \
+			echo "✓ Análisis completado exitosamente."; \
+			if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
+			if [ -f "sintaxis.output" ]; then echo "✓ Reporte de parser: sintaxis.output"; fi; \
+			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
+				: ; \
+			elif [ "$(TARGET)" = "ir" ]; then \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+			else \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
+			fi; \
+			echo "✓ Archivo analizado: $(FILE) ($$(wc -l < "$(FILE)" | xargs) líneas)"; \
+			echo ""; \
+		else \
+			echo "----------------------------------------------"; \
+			echo ""; \
+			echo "✗ Análisis terminó con errores."; \
+			echo ""; \
+			echo "Para debug, revisar:"; \
+			echo "- sintaxis.output: conflictos del parser"; \
+			echo "- Mensajes de error mostrados arriba"; \
+			echo "- Verificar sintaxis en $(FILE)"; \
+			echo ""; \
+			exit 1; \
+		fi; \
 	else \
-		echo "----------------------------------------------"; \
-		echo ""; \
-		echo "✗ Análisis terminó con errores."; \
-		echo ""; \
-		echo "Para debug, revisar:"; \
-		echo "- sintaxis.output: conflictos del parser"; \
-		echo "- Mensajes de error mostrados arriba"; \
-		echo "- Verificar sintaxis en $(FILE)"; \
-		echo ""; \
-		exit 1; \
+		if [ -n "$(TARGET)" ]; then \
+			echo "==> Ejecutando compilación de $(FILE) (target: $(TARGET))..."; \
+		else \
+			echo "==> Ejecutando compilación de $(FILE)..."; \
+		fi; \
+		TARGET_ARG=""; \
+		OPTIMIZER_ARG=""; \
+		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
+		if [ "$(OPTIMIZER)" = "1" ]; then OPTIMIZER_ARG="-optimizer"; fi; \
+		if ./$(EXECUTABLE) $$TARGET_ARG $$OPTIMIZER_ARG < "$(FILE)"; then \
+			echo "✓ Compilación exitosa: $(FILE)"; \
+			if [ -f "ast_tree.png" ]; then echo "✓ AST generado: ast_tree.png"; fi; \
+			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
+				: ; \
+			elif [ "$(TARGET)" = "ir" ]; then \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+			else \
+				if [ -f "inter.ir" ]; then echo "✓ Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then echo "✓ Código objeto generado: output.s"; fi; \
+			fi; \
+		else \
+			echo "✗ Error durante la compilación de $(FILE)"; \
+			exit 1; \
+		fi; \
 	fi
 
 # Ejecutar todos los ejemplos
@@ -153,31 +198,39 @@ help:
 	@echo "Makefile para el compilador C-TDS"
 	@echo ""
 	@echo "Targets disponibles:"
-	@echo "  all          - Compilar el ejecutable (default)"
-	@echo "  clean        - Limpiar archivos generados"
-	@echo "  rebuild      - Limpiar y recompilar desde cero"
-	@echo "  check-sources- Verificar que existan todos los archivos fuente"
+	@echo "  all             - Compilar el ejecutable (default)"
+	@echo "  clean           - Limpiar archivos generados"
+	@echo "  rebuild         - Limpiar y recompilar desde cero"
+	@echo "  check-sources   - Verificar que existan todos los archivos fuente"
 	@echo ""
-	@echo "  run FILE=<archivo> - Ejecutar el compilador con un archivo específico"
-	@echo "                       Ejemplo: make run FILE=examples/example1.ctds"
+	@echo "  run FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1] - Ejecutar el compilador"
+	@echo "                                Ejemplo: make run FILE=examples/example1.ctds"
+	@echo "                                Con debug: make run FILE=examples/example1.ctds DEBUG=1"
+	@echo "                                Con target: make run FILE=examples/example1.ctds TARGET=ir"
+	@echo "                                Con optimizaciones: make run FILE=examples/example1.ctds OPTIMIZER=1"
 	@echo ""
-	@echo "  test-all     - Ejecutar todos los ejemplos"
-	@echo "  test-good    - Ejecutar solo ejemplos válidos"
-	@echo "  test-errors  - Ejecutar ejemplos con errores esperados"
+	@echo "  Etapas disponibles (TARGET):"
+	@echo "    syntax/semantic - Hasta análisis semántico + AST optimizado"
+	@echo "    ir              - Hasta código intermedio + optimizaciones IR"
+	@echo "    object/all      - Compilación completa hasta código objeto (default)"
 	@echo ""
-	@echo "  help         - Mostrar esta ayuda"
+	@echo "  test-all        - Ejecutar todos los ejemplos"
+	@echo "  test-good       - Ejecutar solo ejemplos válidos"
+	@echo "  test-errors     - Ejecutar ejemplos con errores esperados"
+	@echo ""
+	@echo "  help            - Mostrar esta ayuda"
 	@echo ""
 	@echo "Estructura esperada:"
-	@echo "  src/         - Código fuente del compilador"
-	@echo "  examples/    - Archivos de ejemplo .ctds"
-	@echo "  docs/        - Documentación"
+	@echo "  src/            - Código fuente del compilador"
+	@echo "  examples/       - Archivos de ejemplo .ctds"
+	@echo "  docs/           - Documentación"
 	@echo ""
 	@echo "Archivos generados:"
-	@echo "  c-tds        - Ejecutable del compilador"
-	@echo "  ast_tree.png - Visualización del AST (requiere Graphviz)"
+	@echo "  c-tds           - Ejecutable del compilador"
+	@echo "  ast_tree.png    - Visualización del AST (requiere Graphviz)"
 	@echo "  sintaxis.output - Reporte detallado del parser"
-	@echo "  inter.ir     - Código intermedio"
-	@echo "  output.s     - Código ensamblador"
+	@echo "  inter.ir        - Código intermedio"
+	@echo "  output.s        - Código ensamblador"
 	@echo ""
 
 # Dependencias explícitas para el parser (incluye headers)

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "symtab.h"
+#include "ast.h"
 
 SymbolTable *current_table = NULL;
 SymbolTable *global_table = NULL;
@@ -208,11 +209,13 @@ static void print_scope(SymbolTable *scope, int level) {
  * Función para imprimir la tabla de simbolos
  */
 void print_symtab() {
-    printf("\n ------------------------");
-    printf("\n| Tabla de Simbolos (TS) |");
-    printf("\n ------------------------\n");
-    print_scope(global_table, 0);
-    printf("\n");
+    if (debug_mode) {
+        printf("\n ------------------------");
+        printf("\n| Tabla de Simbolos (TS) |");
+        printf("\n ------------------------\n");
+        print_scope(global_table, 0);
+        printf("\n");
+    }
 }
 
 /*

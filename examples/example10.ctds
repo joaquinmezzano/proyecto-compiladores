@@ -1,0 +1,41 @@
+program {
+    integer fibonacci_iterative(integer n) {
+        if (n <= 1) then {
+            return n;
+        } else {
+            integer a = 0;
+            integer b = 1;
+            integer temp = 0;
+            integer i = 2;
+            
+            while (i <= n) {
+                temp = a + b;
+                a = b;
+                b = temp;
+                i = i + 1;
+            }
+            
+            return b;
+        }
+    }
+    
+    integer get_int() extern;
+    void print_int(integer i) extern;
+    
+    void main() {
+        integer n = 0;
+        integer result = 0;
+        
+        // Leer el número para calcular fibonacci
+        n = get_int();
+        
+        // Calcular fibonacci de forma iterativa
+        if (n >= 0) then {
+            result = fibonacci_iterative(n);
+            print_int(result);
+        } else {
+            // Error para números negativos
+            print_int(-1);
+        }
+    }
+}
