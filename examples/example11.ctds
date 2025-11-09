@@ -1,0 +1,24 @@
+program {
+    void print_int(integer i) extern;
+    
+    void main() {
+        integer sum = 5 + 3;
+        integer diff = 20 - 7;
+        integer prod = 4 * 6;
+        integer div = 15 / 3;
+        integer mod = 17 % 4;
+        
+        bool equal = 10 == 10;
+        bool greater = 8 > 3;
+        bool lesser = 5 < 2;
+        
+        bool and_op = true && true;
+        bool or_op = false || true;
+        
+        print_int(sum);
+        print_int(diff);
+        print_int(prod);
+        print_int(div);
+        print_int(mod);
+    }
+}

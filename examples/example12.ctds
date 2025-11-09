@@ -1,0 +1,31 @@
+program {
+    void print_int(integer i) extern;
+    
+    integer algebraic_function(integer x, integer y) {
+        integer zero_add = x + 0;
+        integer zero_sub = y - 0;
+        integer one_mult = x * 1;
+        integer self_div = y / 1;
+        integer zero_mult = x * 0;
+        
+        if (x > 8 + 2) then {
+            y = y + 1;
+        }
+        
+        return x + (12 - 4);
+    }
+    
+    void main() {
+        integer result = algebraic_function(5, 10);
+        print_int(result);
+        
+        if (result > 15 - 5) then {
+            result = result + 0;
+            result = result * 1;
+        }
+        
+        if (result == 3 * 4) then {
+            print_int(result);
+        }
+    }
+}
