@@ -4,6 +4,15 @@
 /* Llevamos la cuenta de la cantidad de registros temporales. */
 static int temp_register_count = 0;
 
+/* Detectar la plataforma en tiempo de compilación */
+#ifdef __APPLE__
+    #define PLATFORM_MACOS 1
+    #define SYM_PREFIX "_"
+#else
+    #define PLATFORM_MACOS 0
+    #define SYM_PREFIX ""
+#endif
+
 /*
  * Inicializamos el buffer resultante.
  */
@@ -139,7 +148,7 @@ int is_label(const char *name) {
  * Asigna un registro a cada variable temporal.
  */
 const char* get_register_for_temp(const char *temp_name) {
-    static const char* registers[] = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9"};
+    static const char* registers[] = {"%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9", "%rax"};
     static int temp_to_reg[256];
     static int initialized = 0;
     
@@ -167,19 +176,29 @@ const char* get_register_for_temp(const char *temp_name) {
 void translate_prologue(ObjectCode *obj, const char *func_name, VarTable *vars) {
     char line[256];
     
+    #if PLATFORM_MACOS
+    /* macOS usa sintaxis diferente para directivas */
+    snprintf(line, sizeof(line), ".globl %s%s", SYM_PREFIX, func_name);
+    object_emit(obj, line);
+    snprintf(line, sizeof(line), "%s%s:", SYM_PREFIX, func_name);
+    object_emit(obj, line);
+    #else
+    /* Linux usa .globl y .type */
     snprintf(line, sizeof(line), ".globl %s", func_name);
     object_emit(obj, line);
     snprintf(line, sizeof(line), ".type %s, @function", func_name);
     object_emit(obj, line);
     snprintf(line, sizeof(line), "%s:", func_name);
     object_emit(obj, line);
+    #endif
     
-    if (vars->stack_size > 0) {
-        snprintf(line, sizeof(line), "\tenter\t$%d, $0", vars->stack_size);
-        object_emit(obj, line);
-    } else {
-        object_emit(obj, "\tenter\t$0, $0");
-    }
+    /* Prólogo estándar - compatible en ambas plataformas */
+    snprintf(line, sizeof(line), "\tpushq\t%%rbp");
+    object_emit(obj, line);
+    snprintf(line, sizeof(line), "\tmovq\t%%rsp, %%rbp");
+    object_emit(obj, line);
+    snprintf(line, sizeof(line), "\tsubq\t$%d, %%rsp", 0);  // Se actualizará después
+    object_emit(obj, line);
 }
 
 /*
@@ -216,11 +235,17 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
         }
         
         case IR_STORE: {
-            const char *src_reg = get_register_for_temp(code->arg1->name);
+            const char *src_name = code->arg1->name;
             const char *dst_name = code->result->name;
             
             int offset = var_table_add(vars, dst_name);
-            snprintf(line, sizeof(line), "\tmovq\t%s, %d(%%rbp)", src_reg, offset);
+
+            if (is_constant(src_name)) {
+                snprintf(line, sizeof(line), "\tmovq\t$%s, %d(%%rbp)", src_name, offset);
+            } else {
+                const char *src_reg = get_register_for_temp(src_name);
+                snprintf(line, sizeof(line), "\tmovq\t%s, %d(%%rbp)", src_reg, offset);
+            }
             object_emit(obj, line);
             break;
         }
@@ -316,13 +341,21 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
         }
         
         case IR_LABEL: {
+            #if PLATFORM_MACOS
+            snprintf(line, sizeof(line), "L%s:", code->result->name + 1);
+            #else
             snprintf(line, sizeof(line), "%s:", code->result->name);
+            #endif
             object_emit(obj, line);
             break;
         }
         
         case IR_GOTO: {
+            #if PLATFORM_MACOS
+            snprintf(line, sizeof(line), "\tjmp\tL%s", code->result->name + 1);
+            #else
             snprintf(line, sizeof(line), "\tjmp\t%s", code->result->name);
+            #endif
             object_emit(obj, line);
             break;
         }
@@ -331,7 +364,11 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *cond_reg = get_register_for_temp(code->arg1->name);
             snprintf(line, sizeof(line), "\tcmpq\t$0, %s", cond_reg);
             object_emit(obj, line);
+            #if PLATFORM_MACOS
+            snprintf(line, sizeof(line), "\tje\tL%s", code->result->name + 1);
+            #else
             snprintf(line, sizeof(line), "\tje\t%s", code->result->name);
+            #endif
             object_emit(obj, line);
             break;
         }
@@ -542,14 +579,22 @@ void translate_ir_instruction(ObjectCode *obj, IRCode *code, VarTable *vars) {
             const char *cond_reg = get_register_for_temp(code->arg1->name);
             snprintf(line, sizeof(line), "\tcmpq\t$0, %s", cond_reg);
             object_emit(obj, line);
+            #if PLATFORM_MACOS
+            snprintf(line, sizeof(line), "\tjne\tL%s", code->result->name + 1);
+            #else
             snprintf(line, sizeof(line), "\tjne\t%s", code->result->name);
+            #endif
             object_emit(obj, line);
             break;
         }
         
         case IR_CALL: {
             const char *func_name = code->arg1->name;
+            #if PLATFORM_MACOS
+            snprintf(line, sizeof(line), "\tcall\t%s%s", SYM_PREFIX, func_name);
+            #else
             snprintf(line, sizeof(line), "\tcall\t%s", func_name);
+            #endif
             object_emit(obj, line);
 
             if (code->result) {
@@ -984,10 +1029,24 @@ int generate_object_code(const char *ir_filename, const char *output_filename) {
     }
     
     if (in_function) {
+        for (int i = 0; i < obj.size; i++) {
+            if (strstr(obj.lines[i], "subq") && strstr(obj.lines[i], "$0, %rsp")) {
+                free(obj.lines[i]);
+                char new_sub[256];
+                int aligned_size = ((vars.stack_size + 15) / 16) * 16;
+                snprintf(new_sub, sizeof(new_sub), "\tsubq\t$%d, %%rsp", aligned_size);
+                obj.lines[i] = strdup(new_sub);
+                break;
+            }
+        }
         translate_epilogue(&obj);
     }
     
+    #if !PLATFORM_MACOS
+    /* Solo en Linux - macOS no necesita esta sección */
     object_emit(&obj, ".section\t.note.GNU-stack,\"\",@progbits");
+    #endif
+    
     fclose(ir_file);
     
     FILE *output = fopen(output_filename, "w");

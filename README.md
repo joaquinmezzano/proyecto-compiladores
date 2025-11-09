@@ -22,7 +22,7 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 | ~~`codigo-intermedio`~~            | 01/10/2025 | 08/10/2025 |
 | ~~`codigo-objeto`~~                | 08/10/2025 | 27/10/2025 |
 | ~~`optimizador`~~                  | 27/10/2025 | 12/11/2025 |
-| `entrega-final`                    | -          | 15/11/2025 |
+| ~~`entrega-final`~~                | -          | 15/11/2025 |
 
 **Comentario:** La rama `main` contiene la versión estable del proyecto. Se actualiza con merges de cada etapa.
 
@@ -48,22 +48,38 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 
     make run FILE=<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]
 
-| Comando                   | Descripción                            | Ejemplo                                |
-| ------------------------- | -------------------------------------- | -------------------------------------- |
-| `make run FILE=<archivo>` | Ejecuta el compilador con un archivo   | `make run FILE=examples/example1.ctds` |
-| `make run FILE=<archivo> DEBUG=1` | Ejecuta en modo debug (output detallado) | `make run FILE=examples/example1.ctds DEBUG=1` |
-| `make run FILE=<archivo> TARGET=<etapa>` | Compila hasta etapa específica | `make run FILE=examples/example1.ctds TARGET=ir` |
-| `make run FILE=<archivo> OPTIMIZER=1` | Habilita optimizaciones | `make run FILE=examples/example1.ctds OPTIMIZER=1` |
-| `make test-all`           | Ejecuta todos los ejemplos disponibles | `make test-all`                        |
-| `make help`               | Muestra ayuda completa                  | `make help`                            |
+| Comando                                  | Descripción                              | Ejemplo                                            |
+| ---------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| `make run FILE=<archivo>`                | Ejecuta el compilador con un archivo     | `make run FILE=examples/example1.ctds`             |
+| `make run FILE=<archivo> DEBUG=1`        | Ejecuta en modo debug (output detallado) | `make run FILE=examples/example1.ctds DEBUG=1`     |
+| `make run FILE=<archivo> TARGET=<etapa>` | Compila hasta etapa específica           | `make run FILE=examples/example1.ctds TARGET=ir`   |
+| `make run FILE=<archivo> OPTIMIZER=1`    | Habilita optimizaciones                  | `make run FILE=examples/example1.ctds OPTIMIZER=1` |
+| `make test-all`                          | Ejecuta todos los ejemplos disponibles   | `make test-all`                                    |
+| `make help`                              | Muestra ayuda completa                   | `make help`                                        |
+
+> ⚠️ **Comentario:**  
+> En sistemas **macOS con procesadores ARM (Apple Silicon)**, puede ser necesario compilar en modo **x86_64** para usar `gcc`:
+>
+> ```bash
+> arch -x86_64 gcc -Wall -o output output.s tests/externfunctions.c
+> arch -x86_64 ./output
+> ```
+>
+> En **Linux** o en equipos con arquitectura **x86_64 nativa**, **no es necesario** anteponer `arch -x86_64`.  
+> Simplemente puede ejecutarse:
+>
+> ```bash
+> gcc -o output output.s tests/externfunctions.c
+> ./output
+> ```
 
 ## Etapas de compilación (TARGET)
 
-| Etapa | Hasta donde compila | Archivos generados |
-|-------|--------------------|--------------------|
-| `syntax`/`semantic` | Análisis semántico + AST (optimizado con `-optimizer`) | `ast_tree.png` |
-| `ir` | Código intermedio (optimizado con `-optimizer`) | `ast_tree.png`, `inter.ir` |
-| `object`/`all` | Compilación completa (default) | `ast_tree.png`, `inter.ir`, `output.s` |
+| Etapa               | Hasta donde compila                                    | Archivos generados                     |
+| ------------------- | ------------------------------------------------------ | -------------------------------------- |
+| `syntax`/`semantic` | Análisis semántico + AST (optimizado con `-optimizer`) | `ast_tree.png`                         |
+| `ir`                | Código intermedio (optimizado con `-optimizer`)        | `ast_tree.png`, `inter.ir`             |
+| `object`/`all`      | Compilación completa (default)                         | `ast_tree.png`, `inter.ir`, `output.s` |
 
 ## Optimizaciones
 
@@ -74,5 +90,6 @@ make run FILE=examples/example1.ctds OPTIMIZER=1
 ```
 
 Las optimizaciones incluyen:
+
 - **AST**: Constant folding, algebraic simplification
 - **IR**: Constant folding, algebraic simplification, constant propagation, dead code elimination
