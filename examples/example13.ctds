@@ -1,0 +1,29 @@
+program {
+    void main() {
+        // Test de correctitud: verificar que optimizaciones mantienen valores correctos
+        
+        // Caso 1: Operaciones básicas
+        integer a = 7;
+        integer b = 3; 
+        integer suma = a + b;      // Debe ser 10
+        integer resta = a - b;     // Debe ser 4
+        integer mult = a * b;      // Debe ser 21
+        
+        // Caso 2: Propagación de constantes
+        integer base = 100;
+        integer incremento = base + 50;  // Debe ser 150
+        integer final = incremento - 25; // Debe ser 125
+        
+        // Caso 3: Simplificaciones algebraicas
+        integer x = 42;
+        integer cero = x - x;      // Debe ser 0
+        integer mismo = x + 0;     // Debe ser 42
+        integer doble = x * 2;     // Debe ser 84
+        
+        // Caso 4: Dead code (variable no usada)
+        integer basura = 999;
+        
+        // Caso 5: Expresiones complejas
+        integer complejo = (a + b) * (resta + 1);  // (10) * (5) = 50
+    }
+}

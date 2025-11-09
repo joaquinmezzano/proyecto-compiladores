@@ -21,7 +21,7 @@ Este proyecto tiene como objetivo el desarrollo de un compilador, aplicando los 
 | ~~`analizador-semantico`~~         | 15/09/2025 | 01/10/2025 |
 | ~~`codigo-intermedio`~~            | 01/10/2025 | 08/10/2025 |
 | ~~`codigo-objeto`~~                | 08/10/2025 | 27/10/2025 |
-| `optimizador`                      | 27/10/2025 | 12/11/2025 |
+| ~~`optimizador`~~                  | 27/10/2025 | 12/11/2025 |
 | `entrega-final`                    | -          | 15/11/2025 |
 
 **Comentario:** La rama `main` contiene la versión estable del proyecto. Se actualiza con merges de cada etapa.
