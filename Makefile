@@ -1,6 +1,9 @@
 # Makefile para el compilador C-TDS
 # Compatible con Linux y macOS
 
+# Usar bash como shell para que funcionen los códigos de escape ANSI
+SHELL := /bin/bash
+
 # Detectar el sistema operativo
 UNAME_S := $(shell uname -s)
 
@@ -45,12 +48,23 @@ OUTPUT_FILES = ast.dot ast_tree.png inter.ir output.s
 # Archivos temporales y generados para limpiar
 CLEAN_FILES = $(LEXER_OUT) $(PARSER_OUT) $(PARSER_HDR) $(PARSER_REPORT) $(EXECUTABLE) $(OUTPUT_FILES)
 
-# Colores para mensajes (si el terminal lo soporta)
-NO_COLOR=\033[0m
-GREEN=\033[0;32m
-YELLOW=\033[0;33m
-BLUE=\033[0;34m
-RED=\033[0;31m
+# Sistema de colores simplificado y robusto
+NO_COLOR := \033[0m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+BLUE := \033[0;34m
+RED := \033[0;31m
+BOLD := \033[1m
+
+# Comandos de colores para uso directo en bash
+ECHO_BLUE = bash -c 'echo -e "\033[0;34m$$0\033[0m"'
+ECHO_GREEN = bash -c 'echo -e "\033[0;32m$$0\033[0m"'
+ECHO_YELLOW = bash -c 'echo -e "\033[0;33m$$0\033[0m"'
+ECHO_RED = bash -c 'echo -e "\033[0;31m$$0\033[0m"'
+ECHO_SUCCESS = bash -c 'echo -e "\033[0;32m✓ $$0\033[0m"'
+ECHO_INFO = bash -c 'echo -e "\033[0;34m==> $$0\033[0m"'
+ECHO_WARNING = bash -c 'echo -e "\033[0;33m⚠ $$0\033[0m"'
+ECHO_ERROR = bash -c 'echo -e "\033[0;31m✗ $$0\033[0m"'
 
 # Regla por defecto
 .PHONY: all
@@ -59,46 +73,46 @@ all: banner $(EXECUTABLE)
 # Banner de información
 .PHONY: banner
 banner:
-	@echo "$(BLUE)================================================$(NO_COLOR)"
-	@echo "$(BLUE)  Compilador C-TDS - Plataforma: $(PLATFORM)$(NO_COLOR)"
-	@echo "$(BLUE)================================================$(NO_COLOR)"
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
+	@bash -c 'echo -e "\033[0;34m  Compilador C-TDS - Plataforma: $(PLATFORM)\033[0m"'
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
 	@echo ""
 
 # Compilar el ejecutable principal
 $(EXECUTABLE): $(PARSER_OUT) $(LEXER_OUT) $(C_SOURCES) $(HEADERS)
-	@echo "$(GREEN)==> Compilando con GCC en $(PLATFORM)...$(NO_COLOR)"
+	@$(ECHO_INFO) "Compilando con GCC en $(PLATFORM)..."
 	$(CC) $(CFLAGS) -o $@ $(PARSER_OUT) $(LEXER_OUT) $(C_SOURCES)
-	@echo "$(GREEN)==> Compilación exitosa. Ejecutable: $@$(NO_COLOR)"
+	@$(ECHO_SUCCESS) "Compilación exitosa. Ejecutable: $@"
 	@echo ""
 
 # Generar parser con Bison
 $(PARSER_OUT) $(PARSER_HDR) $(PARSER_REPORT): $(PARSER_SRC)
-	@echo "$(YELLOW)==> Generando parser con Bison...$(NO_COLOR)"
+	@$(ECHO_INFO) "Generando parser con Bison..."
 	$(BISON) -d -v $<
 
 # Generar lexer con Flex
 $(LEXER_OUT): $(LEXER_SRC)
-	@echo "$(YELLOW)==> Generando lexer con Flex...$(NO_COLOR)"
+	@$(ECHO_INFO) "Generando lexer con Flex..."
 	$(FLEX) --nounput --noyywrap $<
 
 # Verificar archivos fuente
 .PHONY: check-sources
 check-sources:
-	@echo "$(BLUE)==> Verificando archivos fuente...$(NO_COLOR)"
+	@$(ECHO_INFO) "Verificando archivos fuente..."
 	@for file in $(LEXER_SRC) $(PARSER_SRC) $(C_SOURCES) $(HEADERS); do \
 		if [ ! -f "$$file" ]; then \
-			echo "$(RED)Error: el archivo fuente '$$file' no existe.$(NO_COLOR)"; \
+			$(ECHO_ERROR) "el archivo fuente '$$file' no existe."; \
 			exit 1; \
 		fi \
 	done
-	@echo "$(GREEN)✓ Todos los archivos fuente verificados correctamente.$(NO_COLOR)"
+	@$(ECHO_SUCCESS) "Todos los archivos fuente verificados correctamente."
 
 # Limpiar archivos generados
 .PHONY: clean
 clean:
-	@echo "$(YELLOW)==> Limpiando archivos generados...$(NO_COLOR)"
+	@$(ECHO_INFO) "Limpiando archivos generados..."
 	rm -f $(CLEAN_FILES)
-	@echo "$(GREEN)✓ Limpieza completada.$(NO_COLOR)"
+	@$(ECHO_SUCCESS) "Limpieza completada."
 
 # Compilar desde cero (limpiar y compilar)
 .PHONY: rebuild
@@ -108,7 +122,7 @@ rebuild: clean all
 .PHONY: run
 run: $(EXECUTABLE)
 	@if [ -z "$(FILE)" ]; then \
-		echo "$(RED)Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]$(NO_COLOR)"; \
+		$(ECHO_ERROR) "Uso: make run FILE=examples/<archivo.ctds> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]"; \
 		echo "Ejemplo: make run FILE=examples/example1.ctds"; \
 		echo "Con debug: make run FILE=examples/example1.ctds DEBUG=1"; \
 		echo "Con target: make run FILE=examples/example1.ctds TARGET=semantic"; \
@@ -117,14 +131,14 @@ run: $(EXECUTABLE)
 		exit 1; \
 	fi
 	@if [ ! -f "$(FILE)" ]; then \
-		echo "$(RED)Error: el archivo '$(FILE)' no existe.$(NO_COLOR)"; \
+		$(ECHO_ERROR) "el archivo '$(FILE)' no existe."; \
 		exit 1; \
 	fi
 	@if [ "$(DEBUG)" = "1" ]; then \
 		if [ -n "$(TARGET)" ]; then \
-			echo "$(BLUE)==> Ejecutando compilación de $(FILE) (modo debug, target: $(TARGET))...$(NO_COLOR)"; \
+			$(ECHO_INFO) "Ejecutando compilación de $(FILE) (modo debug, target: $(TARGET))..."; \
 		else \
-			echo "$(BLUE)==> Ejecutando parser con análisis semántico en $(FILE) (modo debug)...$(NO_COLOR)"; \
+			$(ECHO_INFO) "Ejecutando parser con análisis semántico en $(FILE) (modo debug)..."; \
 		fi; \
 		echo ""; \
 		echo "--------------------------------------------------"; \
@@ -138,24 +152,24 @@ run: $(EXECUTABLE)
 			echo "| Reporte final del programa |"; \
 			echo " --------------------------- "; \
 			echo ""; \
-			echo "$(GREEN)✓ Análisis completado exitosamente.$(NO_COLOR)"; \
-			if [ -f "ast_tree.png" ]; then echo "$(GREEN)✓ AST generado: ast_tree.png$(NO_COLOR)"; fi; \
-			if [ -f "sintaxis.output" ]; then echo "$(GREEN)✓ Reporte de parser: sintaxis.output$(NO_COLOR)"; fi; \
+			$(ECHO_SUCCESS) "Análisis completado exitosamente."; \
+			if [ -f "ast_tree.png" ]; then $(ECHO_SUCCESS) "AST generado: ast_tree.png"; fi; \
+			if [ -f "sintaxis.output" ]; then $(ECHO_SUCCESS) "Reporte de parser: sintaxis.output"; fi; \
 			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
 				: ; \
 			elif [ "$(TARGET)" = "ir" ]; then \
-				if [ -f "inter.ir" ]; then echo "$(GREEN)✓ Código intermedio generado: inter.ir$(NO_COLOR)"; fi; \
+				if [ -f "inter.ir" ]; then $(ECHO_SUCCESS) "Código intermedio generado: inter.ir"; fi; \
 			else \
-				if [ -f "inter.ir" ]; then echo "$(GREEN)✓ Código intermedio generado: inter.ir$(NO_COLOR)"; fi; \
-				if [ -f "output.s" ]; then echo "$(GREEN)✓ Código objeto generado: output.s$(NO_COLOR)"; fi; \
+				if [ -f "inter.ir" ]; then $(ECHO_SUCCESS) "Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then $(ECHO_SUCCESS) "Código objeto generado: output.s"; fi; \
 			fi; \
-			echo "$(GREEN)✓ Archivo analizado: $(FILE) ($$(wc -l < "$(FILE)" | xargs) líneas)$(NO_COLOR)"; \
-			echo "$(BLUE)✓ Plataforma: $(PLATFORM)$(NO_COLOR)"; \
+			$(ECHO_SUCCESS) "Archivo analizado: $(FILE) ($$(wc -l < "$(FILE)" | xargs) líneas)"; \
+			$(ECHO_BLUE) "✓ Plataforma: $(PLATFORM)"; \
 			echo ""; \
 		else \
 			echo "----------------------------------------------"; \
 			echo ""; \
-			echo "$(RED)✗ Análisis terminó con errores.$(NO_COLOR)"; \
+			$(ECHO_ERROR) "Análisis terminó con errores."; \
 			echo ""; \
 			echo "Para debug, revisar:"; \
 			echo "- sintaxis.output: conflictos del parser"; \
@@ -166,27 +180,27 @@ run: $(EXECUTABLE)
 		fi; \
 	else \
 		if [ -n "$(TARGET)" ]; then \
-			echo "$(BLUE)==> Ejecutando compilación de $(FILE) (target: $(TARGET))...$(NO_COLOR)"; \
+			$(ECHO_INFO) "Ejecutando compilación de $(FILE) (target: $(TARGET))..."; \
 		else \
-			echo "$(BLUE)==> Ejecutando compilación de $(FILE)...$(NO_COLOR)"; \
+			$(ECHO_INFO) "Ejecutando compilación de $(FILE)..."; \
 		fi; \
 		TARGET_ARG=""; \
 		OPTIMIZER_ARG=""; \
 		if [ -n "$(TARGET)" ]; then TARGET_ARG="-target $(TARGET)"; fi; \
 		if [ "$(OPTIMIZER)" = "1" ]; then OPTIMIZER_ARG="-optimizer"; fi; \
 		if ./$(EXECUTABLE) $$TARGET_ARG $$OPTIMIZER_ARG < "$(FILE)"; then \
-			echo "$(GREEN)✓ Compilación exitosa: $(FILE)$(NO_COLOR)"; \
-			if [ -f "ast_tree.png" ]; then echo "$(GREEN)✓ AST generado: ast_tree.png$(NO_COLOR)"; fi; \
+			$(ECHO_SUCCESS) "Compilación exitosa: $(FILE)"; \
+			if [ -f "ast_tree.png" ]; then $(ECHO_SUCCESS) "AST generado: ast_tree.png"; fi; \
 			if [ "$(TARGET)" = "syntax" ] || [ "$(TARGET)" = "semantic" ]; then \
 				: ; \
 			elif [ "$(TARGET)" = "ir" ]; then \
-				if [ -f "inter.ir" ]; then echo "$(GREEN)✓ Código intermedio generado: inter.ir$(NO_COLOR)"; fi; \
+				if [ -f "inter.ir" ]; then $(ECHO_SUCCESS) "Código intermedio generado: inter.ir"; fi; \
 			else \
-				if [ -f "inter.ir" ]; then echo "$(GREEN)✓ Código intermedio generado: inter.ir$(NO_COLOR)"; fi; \
-				if [ -f "output.s" ]; then echo "$(GREEN)✓ Código objeto generado: output.s$(NO_COLOR)"; fi; \
+				if [ -f "inter.ir" ]; then $(ECHO_SUCCESS) "Código intermedio generado: inter.ir"; fi; \
+				if [ -f "output.s" ]; then $(ECHO_SUCCESS) "Código objeto generado: output.s"; fi; \
 			fi; \
 		else \
-			echo "$(RED)✗ Error durante la compilación de $(FILE)$(NO_COLOR)"; \
+			$(ECHO_ERROR) "Error durante la compilación de $(FILE)"; \
 			exit 1; \
 		fi; \
 	fi
@@ -195,30 +209,30 @@ run: $(EXECUTABLE)
 .PHONY: assemble
 assemble:
 	@if [ ! -f "output.s" ]; then \
-		echo "$(RED)Error: no existe output.s. Ejecuta primero: make run FILE=<archivo>$(NO_COLOR)"; \
+		$(ECHO_ERROR) "no existe output.s. Ejecuta primero: make run FILE=<archivo>"; \
 		exit 1; \
 	fi
-	@echo "$(BLUE)==> Ensamblando output.s en $(PLATFORM)...$(NO_COLOR)"
+	@$(ECHO_INFO) "Ensamblando output.s en $(PLATFORM)..."
 ifeq ($(UNAME_S),Darwin)
-	@echo "$(YELLOW)==> Usando sintaxis de ensamblador macOS...$(NO_COLOR)"
+	@$(ECHO_WARNING) "Usando sintaxis de ensamblador macOS..."
 	$(AS) output.s -o output.o
-	@echo "$(GREEN)✓ Ensamblado exitoso: output.o$(NO_COLOR)"
-	@echo "$(BLUE)==> Para enlazar, usa: ld -o program output.o -lSystem -e _main$(NO_COLOR)"
+	@$(ECHO_SUCCESS) "Ensamblado exitoso: output.o"
+	@$(ECHO_BLUE) "Para enlazar, usa: ld -o program output.o -lSystem -e _main"
 else
-	@echo "$(YELLOW)==> Usando sintaxis de ensamblador Linux...$(NO_COLOR)"
+	@$(ECHO_WARNING) "Usando sintaxis de ensamblador Linux..."
 	$(AS) output.s -o output.o
 	$(CC) output.o -o program
-	@echo "$(GREEN)✓ Programa compilado: ./program$(NO_COLOR)"
+	@$(ECHO_SUCCESS) "Programa compilado: ./program"
 endif
 
 # Ejecutar todos los ejemplos
 .PHONY: test-all
 test-all: $(EXECUTABLE)
-	@echo "$(BLUE)==> Ejecutando todos los ejemplos...$(NO_COLOR)"
+	@$(ECHO_INFO) "Ejecutando todos los ejemplos..."
 	@for example in examples/example*.ctds; do \
 		if [ -f "$$example" ]; then \
 			echo ""; \
-			echo "$(BLUE)==> Probando: $$example$(NO_COLOR)"; \
+			$(ECHO_INFO) "Probando: $$example"; \
 			$(MAKE) run FILE="$$example" || true; \
 		fi \
 	done
@@ -226,11 +240,11 @@ test-all: $(EXECUTABLE)
 # Ejecutar solo ejemplos que no deberían tener errores
 .PHONY: test-good
 test-good: $(EXECUTABLE)
-	@echo "$(BLUE)==> Ejecutando ejemplos válidos...$(NO_COLOR)"
+	@$(ECHO_INFO) "Ejecutando ejemplos válidos..."
 	@for example in examples/example[1-7].ctds; do \
 		if [ -f "$$example" ]; then \
 			echo ""; \
-			echo "$(BLUE)==> Probando: $$example$(NO_COLOR)"; \
+			$(ECHO_INFO) "Probando: $$example"; \
 			$(MAKE) run FILE="$$example" || true; \
 		fi \
 	done
@@ -238,11 +252,11 @@ test-good: $(EXECUTABLE)
 # Ejecutar ejemplos con errores esperados
 .PHONY: test-errors
 test-errors: $(EXECUTABLE)
-	@echo "$(BLUE)==> Ejecutando ejemplos con errores esperados...$(NO_COLOR)"
+	@$(ECHO_INFO) "Ejecutando ejemplos con errores esperados..."
 	@for example in examples/exampleError*.ctds; do \
 		if [ -f "$$example" ]; then \
 			echo ""; \
-			echo "$(BLUE)==> Probando: $$example (se esperan errores)$(NO_COLOR)"; \
+			$(ECHO_INFO) "Probando: $$example (se esperan errores)"; \
 			$(MAKE) run FILE="$$example" || true; \
 		fi \
 	done
@@ -250,9 +264,9 @@ test-errors: $(EXECUTABLE)
 # Mostrar información del sistema
 .PHONY: info
 info:
-	@echo "$(BLUE)================================================$(NO_COLOR)"
-	@echo "$(BLUE)  Información del Sistema$(NO_COLOR)"
-	@echo "$(BLUE)================================================$(NO_COLOR)"
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
+	@bash -c 'echo -e "\033[0;34m  Información del Sistema\033[0m"'
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
 	@echo "Sistema Operativo: $(UNAME_S)"
 	@echo "Plataforma: $(PLATFORM)"
 	@echo "Compilador C: $(CC)"
@@ -270,36 +284,36 @@ info:
 .PHONY: help
 help:
 	@echo ""
-	@echo "$(BLUE)================================================$(NO_COLOR)"
-	@echo "$(BLUE)  Makefile para el compilador C-TDS$(NO_COLOR)"
-	@echo "$(BLUE)  Plataforma: $(PLATFORM)$(NO_COLOR)"
-	@echo "$(BLUE)================================================$(NO_COLOR)"
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
+	@bash -c 'echo -e "\033[0;34m  Makefile para el compilador C-TDS\033[0m"'
+	@bash -c 'echo -e "\033[0;34m  Plataforma: $(PLATFORM)\033[0m"'
+	@bash -c 'echo -e "\033[0;34m================================================\033[0m"'
 	@echo ""
 	@echo "Targets disponibles:"
-	@echo "  $(GREEN)all$(NO_COLOR)             - Compilar el ejecutable (default)"
-	@echo "  $(GREEN)clean$(NO_COLOR)           - Limpiar archivos generados"
-	@echo "  $(GREEN)rebuild$(NO_COLOR)         - Limpiar y recompilar desde cero"
-	@echo "  $(GREEN)check-sources$(NO_COLOR)   - Verificar que existan todos los archivos fuente"
-	@echo "  $(GREEN)info$(NO_COLOR)            - Mostrar información del sistema"
+	@bash -c 'echo -e "  \033[0;32mall\033[0m             - Compilar el ejecutable (default)"'
+	@bash -c 'echo -e "  \033[0;32mclean\033[0m           - Limpiar archivos generados"'
+	@bash -c 'echo -e "  \033[0;32mrebuild\033[0m         - Limpiar y recompilar desde cero"'
+	@bash -c 'echo -e "  \033[0;32mcheck-sources\033[0m   - Verificar que existan todos los archivos fuente"'
+	@bash -c 'echo -e "  \033[0;32minfo\033[0m            - Mostrar información del sistema"'
 	@echo ""
-	@echo "  $(GREEN)run$(NO_COLOR) FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]"
+	@bash -c 'echo -e "  \033[0;32mrun\033[0m FILE=<archivo> [DEBUG=1] [TARGET=<etapa>] [OPTIMIZER=1]"'
 	@echo "                  - Ejecutar el compilador"
 	@echo "                    Ejemplo: make run FILE=examples/example1.ctds"
 	@echo "                    Con debug: make run FILE=examples/example1.ctds DEBUG=1"
 	@echo "                    Con target: make run FILE=examples/example1.ctds TARGET=ir"
 	@echo "                    Con optimizaciones: make run FILE=examples/example1.ctds OPTIMIZER=1"
 	@echo ""
-	@echo "  $(YELLOW)Etapas disponibles (TARGET):$(NO_COLOR)"
+	@bash -c 'echo -e "  \033[0;33mEtapas disponibles (TARGET):\033[0m"'
 	@echo "    syntax/semantic - Hasta análisis semántico + AST optimizado"
 	@echo "    ir              - Hasta código intermedio + optimizaciones IR"
 	@echo "    object/all      - Compilación completa hasta código objeto (default)"
 	@echo ""
-	@echo "  $(GREEN)assemble$(NO_COLOR)        - Ensamblar output.s generado"
-	@echo "  $(GREEN)test-all$(NO_COLOR)        - Ejecutar todos los ejemplos"
-	@echo "  $(GREEN)test-good$(NO_COLOR)       - Ejecutar solo ejemplos válidos"
-	@echo "  $(GREEN)test-errors$(NO_COLOR)     - Ejecutar ejemplos con errores esperados"
+	@bash -c 'echo -e "  \033[0;32massemble\033[0m        - Ensamblar output.s generado"'
+	@bash -c 'echo -e "  \033[0;32mtest-all\033[0m        - Ejecutar todos los ejemplos"'
+	@bash -c 'echo -e "  \033[0;32mtest-good\033[0m       - Ejecutar solo ejemplos válidos"'
+	@bash -c 'echo -e "  \033[0;32mtest-errors\033[0m     - Ejecutar ejemplos con errores esperados"'
 	@echo ""
-	@echo "  $(GREEN)help$(NO_COLOR)            - Mostrar esta ayuda"
+	@bash -c 'echo -e "  \033[0;32mhelp\033[0m            - Mostrar esta ayuda"'
 	@echo ""
 	@echo "Estructura esperada:"
 	@echo "  src/            - Código fuente del compilador"
